@@ -5,7 +5,7 @@ resource "azurerm_postgresql_flexible_server" "this" {
   administrator_login = var.db_username
   administrator_password = var.db_password
   sku_name = "B_Standard_B1ms"
-  storage_mb = 32786
+  storage_mb = 32768
   version = "13"
 }
 
