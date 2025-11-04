@@ -1,0 +1,62 @@
+name: Deploy Strapi CMS
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install jq
+        run: sudo apt-get update -y && sudo apt-get install -y jq
+
+      - name: Build terraform.tfvars.json from clinic-config.json
+        run: |
+          jq '{
+            clinic_name: .clinic.name,
+            clinic_environment: .clinic.environment,
+            clinic_region: .clinic.region,
+            strapi_repo: .strapi.repo,
+            strapi_branch: .strapi.branch,
+            strapi_repo_subdir: .strapi.repo_subdir,
+            strapi_admin_email: .strapi.admin_email,
+            strapi_admin_password: .strapi.admin_password,
+            db_name: .database.name,
+            db_username: .database.username,
+            db_password: .database.password,
+            azure_resource_group_prefix: .azure.resource_group_prefix,
+            azure_app_service_plan_sku: .azure.app_service_plan_sku,
+            linked_storefront_url: .integration.linked_storefront_url,
+            backend_url: .integration.backend_url,
+            brand_primary_color: .clinic.branding.primary_color,
+            brand_secondary_color: .clinic.branding.secondary_color,
+            brand_logo_url: .clinic.branding.logo_url,
+            brand_favicon_url: .clinic.branding.favicon_url
+          }' clinic-config.json > terraform.tfvars.json
+          echo "terraform.tfvars.json:"
+          cat terraform.tfvars.json
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform init
+        run: terraform init
+
+      - name: Terraform apply
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        run: terraform apply -auto-approve -var-file="terraform.tfvars.json"
+
+      - name: Show outputs (json)
+        run: terraform output -json
