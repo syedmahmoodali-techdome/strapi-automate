@@ -30,7 +30,7 @@ module "database" {
   db_password         = var.db_password
 }
 
-# App Service (Strapi)
+# App Service
 module "app_service" {
   source                = "./modules/app_service"
   resource_group_name   = module.resource_group.name
