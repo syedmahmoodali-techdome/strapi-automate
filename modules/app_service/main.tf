@@ -42,7 +42,6 @@ resource "azurerm_app_service_source_control" "sc" {
   repo_url = var.repo_url
   branch = var.repo_branch
 }
-
 output "cms_url" {
   value = azurerm_linux_web_app.this.default_hostname
 }
