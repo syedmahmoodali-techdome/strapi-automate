@@ -1,5 +1,5 @@
 resource "azurerm_resource_group" "this" {
-  name = "${var.name_prefix}-${var.environment}-rg-ali" 
+  name = "${var.name_prefix}-${var.environment}-strapi-cms-rg" 
   location = var.location
 }
 
