@@ -2,7 +2,7 @@
   "clinic": {
     "name": "ali-clinic",
     "environment": "staging",
-    "region": "eastus",
+    "region": "centralus",
     "branding": {
       "primary_color": "#0099FF",
       "secondary_color": "#F2F2F2",
