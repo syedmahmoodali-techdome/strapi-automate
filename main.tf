@@ -45,6 +45,7 @@ module "app_service" {
   db_connection_string  = module.database.connection_string
   linked_storefront_url = var.linked_storefront_url
   backend_url           = var.backend_url
+  github_token = var.github_token
 
   # branding
   brand_primary_color   = var.brand_primary_color
