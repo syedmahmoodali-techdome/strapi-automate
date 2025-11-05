@@ -2,7 +2,7 @@ output "cms_url" {
   description = "URL of the deployed Strapi CMS"
   value       = module.app_service.cms_url
 }
-
+ 
 output "cms_admin_email" {
   description = "email configured for Strapi"
   value       = var.strapi_admin_email
