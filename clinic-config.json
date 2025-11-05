@@ -1,6 +1,6 @@
 {
   "clinic": {
-    "name": "ali_clinic",
+    "name": "ali-clinic",
     "environment": "staging",
     "region": "eastus",
     "branding": {
@@ -18,7 +18,7 @@
     "admin_password": "StrongPass123!"
   },
   "database": {
-    "name": "strapi_db_ali",
+    "name": "strapi-db-ali",
     "username": "strapi_admin",
     "password": "DbPass@123"
   },
