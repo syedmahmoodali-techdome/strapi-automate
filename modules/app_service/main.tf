@@ -37,11 +37,11 @@ resource "azurerm_linux_web_app" "this" {
 
 # Configure source control so App Service pulls the repo (public repo OK).
 # If the repo is private you must supply authentication or use a different deployment method.
-resource "azurerm_app_service_source_control" "sc" {
-  app_id = azurerm_linux_web_app.this.id
-  repo_url = var.repo_url
-  branch = var.repo_branch
-}
+# resource "azurerm_app_service_source_control" "sc" {
+  # app_id = azurerm_linux_web_app.this.id
+  # repo_url = var.repo_url
+  # branch = var.repo_branch
+# }
 output "cms_url" {
   value = azurerm_linux_web_app.this.default_hostname
 }
