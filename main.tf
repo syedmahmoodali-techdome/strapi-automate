@@ -12,7 +12,7 @@ provider "azurerm" {
   features {}
 }
 
-# Resource Group
+# Resource Group 
 module "resource_group" {
   source      = "./modules/resource_group"
   name_prefix = var.azure_resource_group_prefix
