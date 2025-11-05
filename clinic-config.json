@@ -11,9 +11,9 @@
     }
   },
   "strapi": {
-    "repo": "https://github.com/strapi/strapi-starter-blog.git",
+    "repo": "https://github.com/your-org/private-strapi-repo.git",
     "branch": "main",
-    "repo_subdir": ".",
+    "repo_subdir": "my-strapi-project",
     "admin_email": "admin@aliclinic.com",
     "admin_password": "StrongPass123!"
   },
