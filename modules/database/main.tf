@@ -11,7 +11,7 @@ resource "azurerm_postgresql_flexible_server" "this" {
 
 // azurerm_postgresql_flexible_server_database
 // azurerm_postgresql_flexible_database
-resource "azurerm_postgresql_flexible_database" "db" {
+resource "azurerm_postgresql_flexible_server_database" "db" {
   name = var.db_name
   server_id = azurerm_postgresql_flexible_server.this.id
 }
