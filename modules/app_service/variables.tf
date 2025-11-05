@@ -18,3 +18,8 @@ variable "brand_primary_color" {}
 variable "brand_secondary_color" {}
 variable "brand_logo_url" {}
 variable "brand_favicon_url" {}
+
+variable "github_token" {
+  description = "GitHub Personal Access Token"
+  sensitive   = true
+}
