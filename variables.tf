@@ -22,6 +22,12 @@ variable "azure_app_service_plan_sku" {}
 variable "linked_storefront_url" {}
 variable "backend_url" {}
 
+variable "github_token" {
+  description = "GitHub Personal Access Token"
+  sensitive   = true
+}
+
+
 # branding
 variable "brand_primary_color" {}
 variable "brand_secondary_color" {}
