@@ -1,3 +1,12 @@
+# Create App Service Plan
+resource "azurerm_service_plan" "strapi" {
+  name                = "${var.clinic_name}-plan"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  os_type             = "Linux"
+  sku_name            = var.plan_sku
+}
+
 resource "azurerm_linux_web_app" "strapi" {
   name                = "${var.clinic_name}-cms"
   resource_group_name = var.resource_group_name
