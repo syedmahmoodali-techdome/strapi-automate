@@ -21,14 +21,14 @@ module "resource_group" {
 }
 
 # Database
-module "database" {
-  source              = "./modules/database"
-  resource_group_name = module.resource_group.name
-  location            = var.clinic_region
-  db_name             = var.db_name
-  db_username         = var.db_username
-  db_password         = var.db_password
-}
+#module "database" {
+#  source              = "./modules/database"
+#  resource_group_name = module.resource_group.name
+#  location            = var.clinic_region
+#  db_name             = var.db_name
+#  db_username         = var.db_username
+#  db_password         = var.db_password
+#}
 
 # App Service
 module "app_service" {
