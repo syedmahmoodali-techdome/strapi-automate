@@ -1,20 +1,4 @@
 # ===========================
-# Variables
-# ===========================
-variable "admin_email" {}
-variable "admin_password" {}
-variable "db_connection_string" {}
-variable "linked_storefront_url" {}
-variable "backend_url" {}
-variable "brand_primary_color" {}
-variable "brand_secondary_color" {}
-variable "brand_logo_url" {}
-variable "brand_favicon_url" {}
-variable "repo_url" {}
-variable "repo_branch" {}
-variable "github_token" {} # <-- NEW (comes from GH_PAT secret)
-
-# ===========================
 # Azure App Service Plan
 # ===========================
 
