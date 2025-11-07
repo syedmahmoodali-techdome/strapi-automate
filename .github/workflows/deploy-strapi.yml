@@ -1,12 +1,12 @@
 name: Deploy Strapi CMS
- 
+
 on:
   workflow_dispatch:
   push:
     branches: [ main ]
 
 jobs:
-  deploy:
+  terraform:
     runs-on: ubuntu-latest
 
     steps:
@@ -68,3 +68,44 @@ jobs:
 
       - name: Show outputs (json)
         run: terraform output -json
+
+      - name: Export outputs
+        id: tfout
+        run: | 
+          echo "app_service_name=$(terraform output -raw app_service_name)" >> $GITHUB_OUTPUT
+          echo "resource_group_name=$(terraform output -raw resource_group_name)" >> $GITHUB_OUTPUT
+
+  deploy:
+    needs: terraform
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Strapi dependencies
+        working-directory: my-strapi-project
+        run: npm ci
+
+      - name: Build Strapi admin
+        working-directory: my-strapi-project
+        run: npm run build
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.ARM_CLIENT_SECRET }}
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ needs.terraform.outputs.app_service_name }}
+          package: ./my-strapi-project
