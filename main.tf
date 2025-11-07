@@ -42,7 +42,7 @@ module "app_service" {
   repo_subdir           = var.strapi_repo_subdir
   admin_email           = var.strapi_admin_email
   admin_password        = var.strapi_admin_password
-  db_connection_string  = module.database.connection_string
+  #db_connection_string  = module.database.connection_string
   linked_storefront_url = var.linked_storefront_url
   backend_url           = var.backend_url
   github_token = var.github_token
