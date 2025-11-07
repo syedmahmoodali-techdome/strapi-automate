@@ -19,6 +19,7 @@ resource "azurerm_linux_web_app" "strapi" {
     application_stack {
       node_version = "18-lts"
     }
+    app_command_line = "npm run start"
   }
 
   app_settings = {
