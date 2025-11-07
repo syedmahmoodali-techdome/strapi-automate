@@ -21,14 +21,14 @@ module "resource_group" {
 }
 
 # Database
-#module "database" {
-#  source              = "./modules/database"
-#  resource_group_name = module.resource_group.name
-#  location            = var.clinic_region
-#  db_name             = var.db_name
-#  db_username         = var.db_username
-#  db_password         = var.db_password
-#}
+module "database" {
+  source              = "./modules/database"
+  resource_group_name = module.resource_group.name
+  location            = var.clinic_region
+  db_name             = var.db_name
+  db_username         = var.db_username
+  db_password         = var.db_password
+}
 
 # App Service
 module "app_service" {
@@ -42,7 +42,7 @@ module "app_service" {
   repo_subdir           = var.strapi_repo_subdir
   admin_email           = var.strapi_admin_email
   admin_password        = var.strapi_admin_password
-  #db_connection_string  = module.database.connection_string
+  db_connection_string  = module.database.connection_string
   linked_storefront_url = var.linked_storefront_url
   backend_url           = var.backend_url
   github_token = var.github_token
