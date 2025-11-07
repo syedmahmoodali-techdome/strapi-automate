@@ -61,6 +61,7 @@ resource "azurerm_app_service_source_control" "github" {
     code_configuration {
       runtime_stack   = "node"
       runtime_version = "18.x"
+      code_path       = var.repo_subdir != "" ? var.repo_subdir : "."  # 👈 this is the fix
     }
   }
 
