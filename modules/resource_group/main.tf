@@ -6,3 +6,8 @@ resource "azurerm_resource_group" "this" {
 output "name" {
   value = azurerm_resource_group.this.name  
 }
+
+output "app_service_name" {
+  value = azurerm_linux_web_app.strapi.name
+}
+  
