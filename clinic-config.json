@@ -11,7 +11,7 @@
     }
   },
   "strapi": {
-    "repo": "https://github.com/your-org/private-strapi-repo.git",
+    "repo": "https://github.com/techdome-io/ecommpoc.git",
     "branch": "main",
     "repo_subdir": "my-strapi-project",
     "admin_email": "admin@aliclinic.com",
