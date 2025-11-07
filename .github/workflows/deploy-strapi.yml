@@ -8,6 +8,10 @@ on:
 jobs:
   terraform:
     runs-on: ubuntu-latest
+    
+    outputs:
+      app_service_name: ${{ steps.tfout.outputs.app_service_name }}
+      resource_group_name: ${{ steps.tfout.outputs.resource_group_name }}
 
     steps:
       - name: Checkout infra repo
