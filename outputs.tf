@@ -24,6 +24,15 @@ output "resource_group" {
   value       = module.resource_group.name
 }
 
+output "app_service_name" {
+  value = module.app_service.azurerm_linux_web_app.strapi.name
+}
+
+output "resource_group_name" {
+  value = module.resource_group.azurerm_resource_group.this.name
+}
+
+
 output "environment" {
   description = "Environment type"
   value       = var.clinic_environment
