@@ -1,4 +1,28 @@
-# Create App Service Plan
+# ===========================
+# Variables
+# ===========================
+
+variable "clinic_name" {}
+variable "location" {}
+variable "resource_group_name" {}
+variable "plan_sku" {}
+variable "admin_email" {}
+variable "admin_password" {}
+variable "db_connection_string" {}
+variable "linked_storefront_url" {}
+variable "backend_url" {}
+variable "brand_primary_color" {}
+variable "brand_secondary_color" {}
+variable "brand_logo_url" {}
+variable "brand_favicon_url" {}
+variable "repo_url" {}
+variable "repo_branch" {}
+variable "github_token" {} # <-- NEW (comes from GH_PAT secret)
+
+# ===========================
+# Azure App Service Plan
+# ===========================
+
 resource "azurerm_service_plan" "strapi" {
   name                = "${var.clinic_name}-plan"
   location            = var.location
@@ -7,14 +31,16 @@ resource "azurerm_service_plan" "strapi" {
   sku_name            = var.plan_sku
 }
 
-# Create the Linux Web App for Strapi
+# ===========================
+# Azure Web App
+# ===========================
+
 resource "azurerm_linux_web_app" "strapi" {
   name                = "${var.clinic_name}-cms"
   resource_group_name = var.resource_group_name
   location            = var.location
   service_plan_id     = azurerm_service_plan.strapi.id
 
-  # The runtime stack is now set automatically by Azure or configured via GitHub Actions
   site_config {}
 
   app_settings = {
@@ -31,8 +57,19 @@ resource "azurerm_linux_web_app" "strapi" {
   }
 }
 
-# Configure GitHub Actions deployment for Strapi
-# Setup GitHub deployment source
+# ===========================
+# GitHub Token for Source Control
+# ===========================
+
+resource "azurerm_app_service_source_control_token" "github" {
+  type  = "GitHub"
+  token = var.github_token
+}
+
+# ===========================
+# Connect Web App to GitHub Repo
+# ===========================
+
 resource "azurerm_app_service_source_control" "github" {
   app_id                 = azurerm_linux_web_app.strapi.id
   repo_url               = var.repo_url
@@ -47,4 +84,8 @@ resource "azurerm_app_service_source_control" "github" {
       runtime_version = "18.x"
     }
   }
+
+  depends_on = [
+    azurerm_app_service_source_control_token.github
+  ]
 }
