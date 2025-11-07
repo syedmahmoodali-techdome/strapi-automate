@@ -1,6 +1,3 @@
-# ===========================
-# Azure App Service Plan
-# ===========================
 resource "azurerm_service_plan" "strapi" {
   name                = "${var.clinic_name}-plan"
   location            = var.location
