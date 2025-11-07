@@ -1,5 +1,5 @@
 name: Deploy Strapi CMS
-
+ 
 on:
   workflow_dispatch:
   push:
