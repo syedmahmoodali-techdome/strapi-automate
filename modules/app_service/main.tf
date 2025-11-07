@@ -16,9 +16,10 @@ resource "azurerm_linux_web_app" "strapi" {
   service_plan_id     = azurerm_service_plan.strapi.id
 
   site_config {
-    linux_fx_version = "NODE|18-lts"
+    application_stack {
+      node_version = "18-lts"
+    }
   }
-
 
   app_settings = {
     NODE_ENV              = "production"
