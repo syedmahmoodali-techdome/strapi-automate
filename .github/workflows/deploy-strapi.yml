@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout infra repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -80,22 +80,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      # ✅ Step 1: Checkout your company repo
+      - name: Checkout company Strapi repo
         uses: actions/checkout@v4
+        with:
+          repository: techdome-io/ecommpoc
+          token: ${{ secrets.GH_PAT }}
+          path: ecommpoc
 
+      # ✅ Step 2: Setup Node.js
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
+      # ✅ Step 3: Install dependencies from inside the Strapi folder
       - name: Install Strapi dependencies
-        working-directory: my-strapi-project
+        working-directory: ecommpoc/my-strapi-project
         run: npm ci
 
+      # ✅ Step 4: Build Strapi
       - name: Build Strapi admin
-        working-directory: my-strapi-project
+        working-directory: ecommpoc/my-strapi-project
         run: npm run build
 
+      # ✅ Step 5: Login to Azure
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -104,8 +113,9 @@ jobs:
           subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           client-secret: ${{ secrets.ARM_CLIENT_SECRET }}
 
+      # ✅ Step 6: Deploy Strapi build to Azure App Service
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ needs.terraform.outputs.app_service_name }}
-          package: ./my-strapi-project
+          package: ./ecommpoc/my-strapi-project
