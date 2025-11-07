@@ -1,11 +1,6 @@
 # ===========================
 # Variables
 # ===========================
-
-variable "clinic_name" {}
-variable "location" {}
-variable "resource_group_name" {}
-variable "plan_sku" {}
 variable "admin_email" {}
 variable "admin_password" {}
 variable "db_connection_string" {}
