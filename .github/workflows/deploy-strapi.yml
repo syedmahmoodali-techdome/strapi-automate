@@ -138,4 +138,5 @@ jobs:
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ needs.terraform.outputs.app_service_name }}
-          package: ./strapi-release.zip
+          package: ./ecommpoc/my-strapi-project/  #this is the one i jsut added
+          # package: ./strapi-release.zip
