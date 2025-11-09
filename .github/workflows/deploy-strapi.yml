@@ -1,149 +1,91 @@
-name: Deploy Strapi CMS
+name: Deploy Strapi CMS to Azure
 
 on:
-  workflow_dispatch:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   terraform:
+    name: Provision Azure Infra
     runs-on: ubuntu-latest
 
-    outputs:
-      app_service_name: ${{ steps.tfout.outputs.app_service_name }}
-      resource_group_name: ${{ steps.tfout.outputs.resource_group_name }}
-
     steps:
-      - name: Checkout infra repo
+      - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Configure Git to use PAT for private repos
-        run: |
-          git config --global url."https://${{ secrets.GH_PAT }}@github.com/".insteadOf "https://github.com/"
-
-      - name: Install jq
-        run: sudo apt-get update -y && sudo apt-get install -y jq
-
-      - name: Build terraform.tfvars.json from clinic-config.json
-        run: |
-          jq '{
-            clinic_name: .clinic.name,
-            clinic_environment: .clinic.environment,
-            clinic_region: .clinic.region,
-            strapi_repo: .strapi.repo,
-            strapi_branch: .strapi.branch,
-            strapi_repo_subdir: .strapi.repo_subdir,
-            strapi_admin_email: .strapi.admin_email,
-            strapi_admin_password: .strapi.admin_password,
-            db_name: .database.name,
-            db_username: .database.username,
-            db_password: .database.password,
-            azure_resource_group_prefix: .azure.resource_group_prefix,
-            azure_app_service_plan_sku: .azure.app_service_plan_sku,
-            linked_storefront_url: .integration.linked_storefront_url,
-            backend_url: .integration.backend_url,
-            brand_primary_color: .clinic.branding.primary_color,
-            brand_secondary_color: .clinic.branding.secondary_color,
-            brand_logo_url: .clinic.branding.logo_url,
-            brand_favicon_url: .clinic.branding.favicon_url
-          }' clinic-config.json > terraform.tfvars.json
-          echo "terraform.tfvars.json:"
-          cat terraform.tfvars.json
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
 
-      - name: Terraform init
+      - name: Terraform Init
         run: terraform init
 
-      - name: Terraform apply
-        env:
-          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-          GH_PAT: ${{ secrets.GH_PAT }}
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
+      - name: Output App Service details
+        id: terraform
         run: |
-          terraform apply -auto-approve \
-            -var-file="terraform.tfvars.json" \
-            -var="github_token=$GH_PAT"
-
-      - name: Show outputs (json)
-        run: terraform output -json
-
-      - name: Export outputs
-        id: tfout
-        run: | 
           echo "app_service_name=$(terraform output -raw app_service_name)" >> $GITHUB_OUTPUT
           echo "resource_group_name=$(terraform output -raw resource_group_name)" >> $GITHUB_OUTPUT
 
-
   deploy:
+    name: Build and Deploy Strapi
     needs: terraform
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
-      # ✅ 1. Checkout company repo (Strapi source)
-      - name: Checkout Strapi source
+      - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          repository: techdome-io/ecommpoc
-          token: ${{ secrets.GH_PAT }}
-          path: ecommpoc
 
-      # ✅ 2. Setup Node.js
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'npm'
-          cache-dependency-path: ecommpoc/my-strapi-project/package-lock.json
 
-      # ✅ 3. Install dependencies
-      - name: Install dependencies
-        working-directory: ecommpoc/my-strapi-project
+      - name: Install Dependencies
+        working-directory: ./ecommpoc/my-strapi-project
         run: npm ci
 
-      # ✅ 4. Build Strapi (creates admin panel)
-      - name: Build Strapi admin
-        working-directory: ecommpoc/my-strapi-project
+      - name: Build Strapi
+        working-directory: ./ecommpoc/my-strapi-project
         run: npm run build
 
-      # ✅ 5. Create deployment zip (include node_modules)
-      - name: Zip production build
-        working-directory: ecommpoc/my-strapi-project
-        run: |
-          zip -r ../../strapi-release.zip . \
-            -x "*.git*" "*.github*" "node_modules/.cache*" "test/*" "tests/*"
-
-      # ✅ 6. Login to Azure
-      - name: Azure Login
+      - name: Login to Azure
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-          auth-type: SERVICE_PRINCIPAL
 
-      # ✅ 7. Disable build during deploy (important for Strapi)
-      - name: Disable build in App Service
+      # ✅ Configure Strapi environment variables for Azure
+      - name: Configure Strapi App Settings
         run: |
           az webapp config appsettings set \
             --name "${{ needs.terraform.outputs.app_service_name }}" \
             --resource-group "${{ needs.terraform.outputs.resource_group_name }}" \
-            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false
+            --settings NODE_ENV=production PORT=8080 HOST=0.0.0.0
 
-      # ✅ 8. Set startup command for Strapi (so Azure runs npm start from correct dir)
-      - name: Set startup command for Strapi
+      # ✅ Ensure startup command uses npm start
+      - name: Set Startup Command
         run: |
           az webapp config set \
             --name "${{ needs.terraform.outputs.app_service_name }}" \
             --resource-group "${{ needs.terraform.outputs.resource_group_name }}" \
             --startup-file "npm run start"
 
-      # ✅ 9. Deploy to Azure App Service
-      - name: Deploy Strapi to Azure Web App
-        uses: azure/webapps-deploy@v2
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ needs.terraform.outputs.app_service_name }}
-          package: ./strapi-release.zip
+          package: ./ecommpoc/my-strapi-project
+
+      - name: Verify Deployment
+        run: |
+          echo "Checking site health..."
+          sleep 30
+          curl -I "https://${{ needs.terraform.outputs.app_service_name }}.azurewebsites.net" || true
