@@ -19,7 +19,8 @@ resource "azurerm_linux_web_app" "strapi" {
     application_stack {
       node_version = "18-lts"
     }
-    app_command_line = "npm run start"
+    # ✅ Correct startup command
+    app_command_line = "cd my-strapi-project && npm run start"
   }
 
   app_settings = {
@@ -33,10 +34,9 @@ resource "azurerm_linux_web_app" "strapi" {
     BRAND_SECONDARY_COLOR = var.brand_secondary_color
     BRAND_LOGO_URL        = var.brand_logo_url
     BRAND_FAVICON_URL     = var.brand_favicon_url
-    "PORT" = "1337"
+
+    "PORT"                     = "1337"
     "WEBSITE_RUN_FROM_PACKAGE" = "1"
-    "STARTUP_COMMAND" = "cd my-strapi-project && npm run start"
-    # cd /home/site/wwwroot && npm run start  # this is the one i just added
   }
 }
 
