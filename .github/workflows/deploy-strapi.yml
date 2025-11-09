@@ -93,7 +93,7 @@ jobs:
           token: ${{ secrets.GH_PAT }}
           path: ecommpoc
 
-      # ✅ 2. Setup Node.js (for build)
+      # ✅ 2. Setup Node.js
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -101,40 +101,49 @@ jobs:
           cache: 'npm'
           cache-dependency-path: ecommpoc/my-strapi-project/package-lock.json
 
-      # ✅ 3. Install dependencies (for building admin)
+      # ✅ 3. Install dependencies
       - name: Install dependencies
         working-directory: ecommpoc/my-strapi-project
         run: npm ci
 
-      # ✅ 4. Build Strapi admin panel
+      # ✅ 4. Build Strapi (creates admin panel)
       - name: Build Strapi admin
         working-directory: ecommpoc/my-strapi-project
         run: npm run build
 
-      # ✅ 5. Prepare deployment package (source only, no node_modules)
-      - name: Prepare deployment source
+      # ✅ 5. Create deployment zip (include node_modules)
+      - name: Zip production build
         working-directory: ecommpoc/my-strapi-project
         run: |
-          zip -r ../../strapi-source.zip . -x "*.git*" "*.github*" "node_modules/*"
+          zip -r ../../strapi-release.zip . \
+            -x "*.git*" "*.github*" "node_modules/.cache*" "test/*" "tests/*"
 
-      # ✅ 6. Azure Login
+      # ✅ 6. Login to Azure
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           auth-type: SERVICE_PRINCIPAL
 
-      # ✅ 7. Enable Azure build process
-      - name: Enable build in App Service
+      # ✅ 7. Disable build during deploy (important for Strapi)
+      - name: Disable build in App Service
         run: |
           az webapp config appsettings set \
             --name "${{ needs.terraform.outputs.app_service_name }}" \
             --resource-group "${{ needs.terraform.outputs.resource_group_name }}" \
-            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true WEBSITE_NODE_DEFAULT_VERSION=18
+            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false
 
-      # ✅ 8. Deploy to Azure App Service
+      # ✅ 8. Set startup command for Strapi (so Azure runs npm start from correct dir)
+      - name: Set startup command for Strapi
+        run: |
+          az webapp config set \
+            --name "${{ needs.terraform.outputs.app_service_name }}" \
+            --resource-group "${{ needs.terraform.outputs.resource_group_name }}" \
+            --startup-file "npm run start"
+
+      # ✅ 9. Deploy to Azure App Service
       - name: Deploy Strapi to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ needs.terraform.outputs.app_service_name }}
-          package: ./strapi-source.zip
+          package: ./strapi-release.zip
