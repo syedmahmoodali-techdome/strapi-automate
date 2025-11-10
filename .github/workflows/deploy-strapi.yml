@@ -52,6 +52,15 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+        # 5️⃣ Terraform Init (with upgrade)
+      - name: Terraform Init (Upgrade)
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        run: terraform init -upgrade
+
       # 5️⃣ Terraform Init & Apply
       - name: Terraform Init & Apply
         env:
@@ -61,7 +70,7 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
-          terraform init -upgrade
+          terraform init 
           terraform apply -auto-approve \
             -var-file="terraform.tfvars.json" \
             -var="github_token=$GH_PAT"
