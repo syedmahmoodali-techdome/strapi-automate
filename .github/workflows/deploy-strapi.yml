@@ -51,8 +51,8 @@ jobs:
       # 4️⃣ Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.5.7  # must be >=1.5 for application_stack support
+        # with:
+          # terraform_version: 1.5.7  # must be >=1.5 for application_stack support
 
       #   # 5️⃣ Terraform Init (with upgrade)
       # - name: Terraform Init (Upgrade)
