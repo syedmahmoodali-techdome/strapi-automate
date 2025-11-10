@@ -35,10 +35,10 @@ output "acr_login_server" {
 
 output "cms_url" {
   description = "The URL of the deployed Strapi CMS"
-  value       = azurerm_linux_web_app.strapi.default_hostname
+  value       = azurerm_linux_web_app.app_service.default_hostname
 }
 
 output "app_service_name" {
   description = "The name of the Azure App Service"
-  value       = azurerm_linux_web_app.strapi.name
+  value       = azurerm_linux_web_app.app_service.name
 }
