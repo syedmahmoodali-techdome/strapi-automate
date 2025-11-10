@@ -73,17 +73,11 @@ jobs:
           echo "acr_login_server=$(terraform output -raw acr_login_server)" >> $GITHUB_OUTPUT
 
           # PostgreSQL outputs
-          DB_FQDN=$(terraform output -raw database_db_fqdn)
-          DB_CONN=$(terraform output -raw database_connection_string)
-          DB_USER=$(echo $DB_CONN | sed -E 's|postgresql://([^:]+):.*|\1|')
-          DB_PASS=$(echo $DB_CONN | sed -E 's|postgresql://[^:]+:([^@]+)@.*|\1|')
-          DB_NAME=$(echo $DB_CONN | sed -E 's|postgresql://[^:]+:[^@]+@[^/]+/(.*)|\1|')
-
-          echo "db_host=$DB_FQDN" >> $GITHUB_OUTPUT
+          echo "db_host=$(terraform output -raw db_fqdn)" >> $GITHUB_OUTPUT
           echo "db_port=5432" >> $GITHUB_OUTPUT
-          echo "db_name=$DB_NAME" >> $GITHUB_OUTPUT
-          echo "db_user=$DB_USER" >> $GITHUB_OUTPUT
-          echo "db_password=$DB_PASS" >> $GITHUB_OUTPUT
+          echo "db_name=$(terraform output -raw db_name)" >> $GITHUB_OUTPUT
+          echo "db_user=$(terraform output -raw db_username)" >> $GITHUB_OUTPUT
+          echo "db_password=$(terraform output -raw db_password)" >> $GITHUB_OUTPUT
 
   deploy:
     needs: terraform
@@ -120,6 +114,7 @@ jobs:
 
           docker build -t strapi-temp:latest .
 
+      # local testing removed because Azure DB is used
       # - name: Test container locally
       #   run: |
       #     docker run -d -p 1337:1337 --name strapi-test strapi-temp:latest
