@@ -2,7 +2,6 @@ variable "resource_group_name" {}
 variable "location" {}
 variable "plan_sku" {}
 variable "clinic_name" {}
-variable "repo_url" {}
 variable "repo_branch" {}
 variable "repo_subdir" {}
 variable "admin_email" {}
