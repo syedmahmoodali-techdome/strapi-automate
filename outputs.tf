@@ -36,3 +36,15 @@ output "environment" {
   description = "Environment type"
   value       = var.clinic_environment
 }
+
+output "app_service_name" {
+  value = module.app_service.app_service_name
+}
+
+output "acr_name" {
+  value = module.app_service.acr_name
+}
+
+output "acr_login_server" {
+  value = module.app_service.acr_login_server
+}
