@@ -38,6 +38,7 @@ resource "azurerm_service_plan" "strapi" {
   resource_group_name = module.resource_group.name
   os_type             = "Linux"
   azure_app_service_plan_sku = var.azure_app_service_plan_sku
+  sku_name = var.azure_app_service_plan_sku
 }
 
 
