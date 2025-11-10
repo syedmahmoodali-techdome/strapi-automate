@@ -16,10 +16,10 @@ resource "azurerm_linux_web_app" "app_service" {
     always_on = true
   }
 
-  application_stack {
-    docker_image_name   = "strapi-app:latest"
-    docker_registry_url = "https://${azurerm_container_registry.acr.login_server}"
-  }
+  #application_stack {
+  #  docker_image_name   = "strapi-app:latest"
+  #  docker_registry_url = "https://${azurerm_container_registry.acr.login_server}"
+  #}
 
   app_settings = {
     WEBSITES_PORT = "1337"
