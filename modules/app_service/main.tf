@@ -58,9 +58,6 @@ resource "azurerm_app_service_source_control" "github" {
 
   github_action_configuration {
     generate_workflow_file = true
-    workflow_configuration {
-      path = "my-strapi-project"
-    }
   }
 }
 
