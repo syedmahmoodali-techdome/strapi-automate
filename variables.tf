@@ -17,7 +17,11 @@ variable "db_password" {
 }
 
 variable "azure_resource_group_prefix" {}
-variable "azure_app_service_plan_sku" {}
+variable "azure_app_service_plan_sku" {
+  type        = string
+  description = "SKU name for the Azure App Service Plan"
+  default     = "B1"
+}
 
 variable "linked_storefront_url" {}
 variable "backend_url" {}
