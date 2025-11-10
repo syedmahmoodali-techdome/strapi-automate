@@ -52,4 +52,6 @@ module "app_service" {
   brand_secondary_color = var.brand_secondary_color
   brand_logo_url        = var.brand_logo_url
   brand_favicon_url     = var.brand_favicon_url
+  repo_url = local.config.strapi.repo
+  branch   = local.config.strapi.branch
 }
