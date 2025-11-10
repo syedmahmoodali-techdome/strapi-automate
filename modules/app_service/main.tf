@@ -21,18 +21,13 @@ resource "azurerm_linux_web_app" "app_service" {
   site_config {
     always_on = true
 
-    # ✅ Moved inside site_config (required in provider v4.x)
+    # Correct way to define Docker container in provider v4+
     application_stack {
       docker_image_name   = "strapi-app:latest"
-      docker_registry_url = azurerm_container_registry.acr.login_server
+      docker_registry_url = azurerm_container_registry.acr.login_server # just hostname
+      docker_registry_username = azurerm_container_registry.acr.admin_username
+      docker_registry_password = azurerm_container_registry.acr.admin_password
     }
-  }
-
-  app_settings = {
-    WEBSITES_PORT                   = "1337"
-    DOCKER_REGISTRY_SERVER_URL      = "https://${azurerm_container_registry.acr.login_server}"
-    DOCKER_REGISTRY_SERVER_USERNAME = azurerm_container_registry.acr.admin_username
-    DOCKER_REGISTRY_SERVER_PASSWORD = azurerm_container_registry.acr.admin_password
   }
 
   https_only = true
