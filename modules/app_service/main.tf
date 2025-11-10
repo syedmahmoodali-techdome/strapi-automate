@@ -56,7 +56,7 @@ resource "azurerm_app_service_source_control" "github" {
   branch                 = var.branch
   use_manual_integration = true
 
-  git_hub_action_configuration {
+  github_action_configuration {
     generate_workflow_file = true
     workflow_configuration {
       path = "my-strapi-project"
