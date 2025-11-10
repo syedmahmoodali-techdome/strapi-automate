@@ -102,11 +102,11 @@ jobs:
           RUN npm install
           COPY . .
           ENV DATABASE_CLIENT=postgres
-          ENV DATABASE_HOST=${{ needs.terraform.outputs.db_host }}
-          ENV DATABASE_PORT=${{ needs.terraform.outputs.db_port }}
-          ENV DATABASE_NAME=${{ needs.terraform.outputs.db_name }}
-          ENV DATABASE_USERNAME=${{ needs.terraform.outputs.db_user }}
-          ENV DATABASE_PASSWORD=${{ needs.terraform.outputs.db_password }}
+          ENV DATABASE_HOST="${{ needs.terraform.outputs.db_host }}"
+          ENV DATABASE_PORT="${{ needs.terraform.outputs.db_port }}"
+          ENV DATABASE_NAME="${{ needs.terraform.outputs.db_name }}"
+          ENV DATABASE_USERNAME="${{ needs.terraform.outputs.db_user }}"
+          ENV DATABASE_PASSWORD="${{ needs.terraform.outputs.db_password }}"
           RUN npm run build
           EXPOSE 1337
           CMD ["npm", "run", "start"]
