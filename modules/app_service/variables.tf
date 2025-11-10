@@ -38,3 +38,9 @@ variable "service_plan_id" {
   description = "The ID of the Azure App Service plan where the app will be deployed"
   type        = string
 }
+
+variable "azure_app_service_plan_sku" {
+  type        = string
+  description = "SKU name for the Azure App Service Plan, e.g., B1, B2"
+  default     = "B1" # Optional default
+}
