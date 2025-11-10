@@ -24,10 +24,6 @@ output "resource_group" {
   value       = module.resource_group.name
 }
 
-output "app_service_name" {
-  value = module.app_service.app_service_name
-}
-
 output "resource_group_name" {
   value = module.resource_group.resource_group_name
 }
