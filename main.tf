@@ -33,6 +33,7 @@ module "database" {
 # App Service
 module "app_service" {
   source                = "./modules/app_service"
+  service_plan_id = azurerm_service_plan.strapi.id
   resource_group_name   = module.resource_group.name
   location              = var.clinic_region
   plan_sku              = var.azure_app_service_plan_sku
