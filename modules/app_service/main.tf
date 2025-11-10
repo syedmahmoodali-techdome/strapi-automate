@@ -50,16 +50,16 @@ resource "azurerm_linux_web_app" "strapi" {
 # ===========================
 # GitHub Source Control (deploys from subdirectory)
 # ===========================
-resource "azurerm_app_service_source_control" "github" {
-  app_id                 = azurerm_linux_web_app.strapi.id
-  repo_url               = var.repo_url
-  branch                 = var.branch
-  use_manual_integration = true
+#resource "azurerm_app_service_source_control" "github" {
+#  app_id                 = azurerm_linux_web_app.strapi.id
+#  repo_url               = var.repo_url
+#  branch                 = var.branch
+#  use_manual_integration = true
 
-  github_action_configuration {
-    generate_workflow_file = true
-  }
-}
+#  github_action_configuration {
+#    generate_workflow_file = true
+#  }
+#}
 
 # ===========================
 # Outputs
