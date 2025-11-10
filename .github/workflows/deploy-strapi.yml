@@ -142,11 +142,16 @@ jobs:
 
       - name: Update App Service container settings
         run: |
+          REGISTRY_USER=$(az acr credential show --name ${{ needs.terraform.outputs.acr_name }} --query username -o tsv)
+          REGISTRY_PASS=$(az acr credential show --name ${{ needs.terraform.outputs.acr_name }} --query passwords[0].value -o tsv)
+
           az webapp config container set \
             --name "${{ needs.terraform.outputs.app_service_name }}" \
             --resource-group "${{ needs.terraform.outputs.resource_group_name }}" \
-            --docker-custom-image-name "${{ needs.terraform.outputs.acr_login_server }}/strapi-app:latest" \
-            --docker-registry-server-url "https://${{ needs.terraform.outputs.acr_login_server }}"
+            --container-image-name "${{ needs.terraform.outputs.acr_login_server }}/strapi-app:latest" \
+            --container-registry-url "https://${{ needs.terraform.outputs.acr_login_server }}" \
+            --container-registry-username "$REGISTRY_USER" \
+            --container-registry-password "$REGISTRY_PASS"
 
       - name: Verify Strapi app
         run: |
