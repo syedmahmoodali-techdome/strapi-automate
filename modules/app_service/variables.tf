@@ -23,3 +23,15 @@ variable "github_token" {
   description = "GitHub Personal Access Token"
   sensitive   = true
 }
+
+variable "repo_url" {
+  description = "GitHub repository URL for the Strapi source"
+  type        = string
+}
+
+variable "branch" {
+  description = "Branch name for deployment"
+  type        = string
+  default     = "main"
+}
+
