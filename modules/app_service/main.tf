@@ -1,4 +1,3 @@
-# modules/app_service/main.tf
 resource "azurerm_service_plan" "app_plan" {
   name                = "${lower(var.clinic_name)}-plan"
   location            = var.location
@@ -8,6 +7,7 @@ resource "azurerm_service_plan" "app_plan" {
   reserved = true
 
   sku_name = var.azure_app_service_plan_sku
+  os_type  = "Linux"
 }
 
 resource "azurerm_container_registry" "acr" {
@@ -33,7 +33,6 @@ resource "azurerm_linux_web_app" "app_service" {
   }
 }
 
-# outputs.tf
 output "cms_url" {
   value = azurerm_linux_web_app.app_service.default_hostname
 }
