@@ -30,6 +30,15 @@ module "database" {
   db_password         = var.db_password
 }
 
+resource "azurerm_service_plan" "strapi" {
+  name                = "${var.clinic_name}-plan"
+  location            = var.location
+  resource_group_name = module.resource_group.name
+  os_type             = "Linux"
+  sku_name            = var.azure_app_service_plan_sku
+}
+
+
 # App Service
 module "app_service" {
   source                = "./modules/app_service"
