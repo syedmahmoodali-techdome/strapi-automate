@@ -17,12 +17,10 @@ resource "azurerm_service_plan" "app_plan" {
   location            = var.location
   resource_group_name = var.resource_group_name
   kind                = "Linux"
-  reserved            = true
+  reserved            = true  # Required for Linux
 
-  sku {
-    tier = "Basic"
-    size = "B1"
-  }
+  sku_name = var.azure_app_service_plan_sku # e.g., "B1", "B2"
+  os_type  = "Linux"
 }
 
 # -------------------------------
@@ -45,15 +43,14 @@ resource "azurerm_linux_web_app" "app_service" {
     DOCKER_REGISTRY_SERVER_USERNAME = azurerm_container_registry.acr.admin_username
     DOCKER_REGISTRY_SERVER_PASSWORD = azurerm_container_registry.acr.admin_password
   }
-
-  depends_on = [azurerm_service_plan.app_plan, azurerm_container_registry.acr]
 }
 
 # -------------------------------
 # Outputs
 # -------------------------------
 output "cms_url" {
-  value = azurerm_linux_web_app.app_service.default_hostname
+  description = "Public URL of the Strapi CMS"
+  value       = azurerm_linux_web_app.app_service.default_hostname
 }
 
 output "app_service_name" {
@@ -62,10 +59,11 @@ output "app_service_name" {
 }
 
 output "acr_name" {
-  value = azurerm_container_registry.acr.name
+  description = "Name of the Azure Container Registry"
+  value       = azurerm_container_registry.acr.name
 }
 
 output "acr_login_server" {
-  value = azurerm_container_registry.acr.login_server
+  description = "Login server URL of the Azure Container Registry"
+  value       = azurerm_container_registry.acr.login_server
 }
-  
