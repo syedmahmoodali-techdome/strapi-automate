@@ -1,22 +1,3 @@
-# modules/app_service/variables.tf
-variable "clinic_name" {
-  type = string
-}
-
-variable "location" {
-  type = string
-}
-
-variable "resource_group_name" {
-  type = string
-}
-
-variable "azure_app_service_plan_sku" {
-  description = "SKU for the Azure App Service Plan (B1, B2, S1, etc.)"
-  type        = string
-  default     = "B1"
-}
-
 # modules/app_service/main.tf
 resource "azurerm_service_plan" "app_plan" {
   name                = "${lower(var.clinic_name)}-plan"
