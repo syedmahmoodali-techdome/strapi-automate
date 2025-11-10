@@ -1,4 +1,15 @@
 # ===========================
+# Azure Container Registry
+# ===========================
+resource "azurerm_container_registry" "strapi_acr" {
+  name                = "${var.clinic_name}acr"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  sku                 = "Basic"
+  admin_enabled       = true
+}
+
+# ===========================
 # Azure App Service Plan
 # ===========================
 resource "azurerm_service_plan" "strapi" {
@@ -10,7 +21,7 @@ resource "azurerm_service_plan" "strapi" {
 }
 
 # ===========================
-# Azure Web App (Strapi)
+# Azure Web App (Container)
 # ===========================
 resource "azurerm_linux_web_app" "strapi" {
   name                = "${var.clinic_name}-cms"
@@ -19,56 +30,32 @@ resource "azurerm_linux_web_app" "strapi" {
   service_plan_id     = azurerm_service_plan.strapi.id
 
   site_config {
+    always_on = true
     application_stack {
-      node_version = "18-lts"
+      docker_image_name = "placeholder" # updated by workflow
+      docker_registry_url = "https://${azurerm_container_registry.strapi_acr.login_server}"
     }
-    # ✅ Correct startup command
-    app_command_line = "npm run start"
   }
 
   app_settings = {
-    NODE_ENV              = "production"
-    STRAPI_ADMIN_EMAIL    = var.admin_email
-    STRAPI_ADMIN_PASSWORD = var.admin_password
-    DATABASE_URL          = var.db_connection_string
-    LINKED_STOREFRONT_URL = var.linked_storefront_url
-    BACKEND_URL           = var.backend_url
-    BRAND_PRIMARY_COLOR   = var.brand_primary_color
-    BRAND_SECONDARY_COLOR = var.brand_secondary_color
-    BRAND_LOGO_URL        = var.brand_logo_url
-    BRAND_FAVICON_URL     = var.brand_favicon_url
-
-    # ✅ Important runtime vars
-    "PORT"                     = "1337"
-    "WEBSITE_RUN_FROM_PACKAGE" = "1"
+    WEBSITES_PORT = "1337"
+    NODE_ENV      = "production"
   }
 
-  # Ensure health check passes
   https_only = true
 }
 
 # ===========================
-# GitHub Source Control (deploys from subdirectory)
-# ===========================
-#resource "azurerm_app_service_source_control" "github" {
-#  app_id                 = azurerm_linux_web_app.strapi.id
-#  repo_url               = var.repo_url
-#  branch                 = var.branch
-#  use_manual_integration = true
-
-#  github_action_configuration {
-#    generate_workflow_file = true
-#  }
-#}
-
-# ===========================
 # Outputs
 # ===========================
-output "cms_url" {
-  description = "The default hostname (URL) of the Strapi CMS web app"
-  value       = azurerm_linux_web_app.strapi.default_hostname
-}
-
 output "app_service_name" {
   value = azurerm_linux_web_app.strapi.name
+}
+
+output "resource_group_name" {
+  value = var.resource_group_name
+}
+
+output "acr_name" {
+  value = azurerm_container_registry.strapi_acr.name
 }
