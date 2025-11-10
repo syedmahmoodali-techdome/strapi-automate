@@ -2,7 +2,6 @@
 # Azure Container Registry (ACR)
 # -------------------------------
 resource "azurerm_container_registry" "acr" {
-  # ACR names: lowercase letters + numbers only, 5–50 chars
   name                = "${replace(lower(var.clinic_name), "-", "")}acr"
   resource_group_name = var.resource_group_name
   location            = var.location
@@ -14,7 +13,6 @@ resource "azurerm_container_registry" "acr" {
 # Azure Linux Web App (App Service)
 # -------------------------------
 resource "azurerm_linux_web_app" "app_service" {
-  # Web app names can have hyphens, but must be globally unique
   name                = "${lower(var.clinic_name)}-app"
   resource_group_name = var.resource_group_name
   location            = var.location
@@ -22,12 +20,12 @@ resource "azurerm_linux_web_app" "app_service" {
 
   site_config {
     always_on = true
-  }
 
-  # ✅ New way to define container configuration (replaces linux_fx_version)
-  application_stack {
-    docker_image_name   = "strapi-app:latest"
-    docker_registry_url = azurerm_container_registry.acr.login_server
+    # ✅ Moved inside site_config (required in provider v4.x)
+    application_stack {
+      docker_image_name   = "strapi-app:latest"
+      docker_registry_url = azurerm_container_registry.acr.login_server
+    }
   }
 
   app_settings = {
@@ -36,6 +34,8 @@ resource "azurerm_linux_web_app" "app_service" {
     DOCKER_REGISTRY_SERVER_USERNAME = azurerm_container_registry.acr.admin_username
     DOCKER_REGISTRY_SERVER_PASSWORD = azurerm_container_registry.acr.admin_password
   }
+
+  https_only = true
 }
 
 # -------------------------------
