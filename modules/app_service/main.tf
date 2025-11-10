@@ -1,6 +1,34 @@
-# -------------------------------
-# Azure Container Registry (ACR)
-# -------------------------------
+# modules/app_service/variables.tf
+variable "clinic_name" {
+  type = string
+}
+
+variable "location" {
+  type = string
+}
+
+variable "resource_group_name" {
+  type = string
+}
+
+variable "azure_app_service_plan_sku" {
+  description = "SKU for the Azure App Service Plan (B1, B2, S1, etc.)"
+  type        = string
+  default     = "B1"
+}
+
+# modules/app_service/main.tf
+resource "azurerm_service_plan" "app_plan" {
+  name                = "${lower(var.clinic_name)}-plan"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+
+  kind     = "Linux"
+  reserved = true
+
+  sku_name = var.azure_app_service_plan_sku
+}
+
 resource "azurerm_container_registry" "acr" {
   name                = "${replace(lower(var.clinic_name), "-", "")}acr"
   resource_group_name = var.resource_group_name
@@ -9,23 +37,6 @@ resource "azurerm_container_registry" "acr" {
   admin_enabled       = true
 }
 
-# -------------------------------
-# Azure App Service Plan (Linux)
-# -------------------------------
-resource "azurerm_service_plan" "strapi" {
-  name                = "${lower(var.clinic_name)}-plan"
-  location            = var.location
-  resource_group_name = var.resource_group_name
-
-  sku_name = var.azure_app_service_plan_sku  # e.g., "B1", "B2", "S1"
-  kind     = "Linux"                         # kind is correct for Linux
-  reserved = true                             # required for Linux containers
-}
-
-
-# -------------------------------
-# Azure Linux Web App (App Service)
-# -------------------------------
 resource "azurerm_linux_web_app" "app_service" {
   name                = "${lower(var.clinic_name)}-app"
   resource_group_name = var.resource_group_name
@@ -33,37 +44,27 @@ resource "azurerm_linux_web_app" "app_service" {
   service_plan_id     = azurerm_service_plan.app_plan.id
 
   site_config {
-    linux_fx_version = "DOCKER|${azurerm_container_registry.acr.login_server}/strapi-app:latest"
-    always_on        = true
+    always_on = true
   }
 
   app_settings = {
-    WEBSITES_PORT                   = "1337"
-    DOCKER_REGISTRY_SERVER_URL      = "https://${azurerm_container_registry.acr.login_server}"
-    DOCKER_REGISTRY_SERVER_USERNAME = azurerm_container_registry.acr.admin_username
-    DOCKER_REGISTRY_SERVER_PASSWORD = azurerm_container_registry.acr.admin_password
+    WEBSITES_PORT = "1337"
   }
 }
 
-# -------------------------------
-# Outputs
-# -------------------------------
+# outputs.tf
 output "cms_url" {
-  description = "Public URL of the Strapi CMS"
-  value       = azurerm_linux_web_app.app_service.default_hostname
+  value = azurerm_linux_web_app.app_service.default_hostname
 }
 
 output "app_service_name" {
-  description = "Name of the Azure App Service"
-  value       = azurerm_linux_web_app.app_service.name
+  value = azurerm_linux_web_app.app_service.name
 }
 
 output "acr_name" {
-  description = "Name of the Azure Container Registry"
-  value       = azurerm_container_registry.acr.name
+  value = azurerm_container_registry.acr.name
 }
 
 output "acr_login_server" {
-  description = "Login server URL of the Azure Container Registry"
-  value       = azurerm_container_registry.acr.login_server
+  value = azurerm_container_registry.acr.login_server
 }
