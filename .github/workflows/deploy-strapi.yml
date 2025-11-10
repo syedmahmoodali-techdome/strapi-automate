@@ -115,7 +115,22 @@ jobs:
       - name: Build Docker image
         working-directory: ecommpoc/my-strapi-project
         run: |
+          # Create temporary Dockerfile in runner
+          cat <<EOF > Dockerfile
+          FROM node:18-alpine
+
+          WORKDIR /usr/src/app
+          COPY package.json package-lock.json ./
+          RUN npm install
+          COPY . .
+          RUN npm run build
+          EXPOSE 1337
+          CMD ["npm", "run", "start"]
+          EOF
+
+          # Build Docker image
           docker build -t strapi-temp:latest .
+
 
       # 3️⃣ Run local container test
       - name: Test container locally
