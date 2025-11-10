@@ -1,10 +1,7 @@
-resource "azurerm_service_plan" "app_plan" {
+resource "azurerm_service_plan" "strapi" {
   name                = "${lower(var.clinic_name)}-plan"
-  location            = var.location
-  resource_group_name = var.resource_group_name
-
-  kind     = "Linux"
-  reserved = true
+  location            = module.resource_group.location
+  resource_group_name = module.resource_group.name
 
   sku_name = var.azure_app_service_plan_sku
   os_type  = "Linux"
@@ -20,9 +17,9 @@ resource "azurerm_container_registry" "acr" {
 
 resource "azurerm_linux_web_app" "app_service" {
   name                = "${lower(var.clinic_name)}-app"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  service_plan_id     = azurerm_service_plan.app_plan.id
+  resource_group_name = module.resource_group.name
+  location            = module.resource_group.location
+  service_plan_id     = azurerm_service_plan.strapi.id
 
   site_config {
     always_on = true
