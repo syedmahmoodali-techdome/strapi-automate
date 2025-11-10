@@ -99,15 +99,27 @@ jobs:
           FROM node:18-alpine
           RUN apk add --no-cache bash python3 make g++ libc-dev postgresql-dev
           WORKDIR /usr/src/app
+
           COPY package.json package-lock.json ./
           RUN npm install
           COPY . .
+
+          # ✅ Strapi DB configuration
           ENV DATABASE_CLIENT=postgres
           ENV DATABASE_HOST="${{ needs.terraform.outputs.db_host }}"
           ENV DATABASE_PORT="${{ needs.terraform.outputs.db_port }}"
           ENV DATABASE_NAME="${{ needs.terraform.outputs.db_name }}"
           ENV DATABASE_USERNAME="${{ needs.terraform.outputs.db_user }}"
           ENV DATABASE_PASSWORD="${{ needs.terraform.outputs.db_password }}"
+
+          # ✅ REQUIRED for Strapi v5 admin login
+          ENV ADMIN_JWT_SECRET="${{ secrets.ADMIN_JWT_SECRET }}"
+
+          # ✅ REQUIRED for Strapi v5 production
+          ENV APP_KEYS="${{ secrets.APP_KEYS }}"
+          ENV API_TOKEN_SALT="${{ secrets.API_TOKEN_SALT }}"
+          ENV TRANSFER_TOKEN_SALT="${{ secrets.TRANSFER_TOKEN_SALT }}"
+
           RUN npm run build
           EXPOSE 1337
           CMD ["npm", "run", "start"]
