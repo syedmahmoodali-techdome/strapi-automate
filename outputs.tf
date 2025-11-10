@@ -44,3 +44,24 @@ output "acr_name" {
 output "acr_login_server" {
   value = module.app_service.acr_login_server
 }
+
+output "db_host" {
+  description = "PostgreSQL FQDN"
+  value       = module.database.db_fqdn
+}
+
+output "db_name" {
+  description = "Database name"
+  value       = module.database.db_name
+}
+
+output "db_user" {
+  description = "Database username"
+  value       = module.database.db_username
+}
+
+output "db_password" {
+  description = "Database password"
+  value       = module.database.db_password
+  sensitive   = true
+}
