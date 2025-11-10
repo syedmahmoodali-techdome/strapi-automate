@@ -48,6 +48,12 @@ resource "azurerm_linux_web_app" "strapi" {
 # ===========================
 # Outputs
 # ===========================
+
+output "cms_url" {
+  value = azurerm_linux_web_app.app_service.default_hostname
+  description = "The default hostname of the deployed app service."
+}
+
 output "app_service_name" {
   value = azurerm_linux_web_app.strapi.name
 }
