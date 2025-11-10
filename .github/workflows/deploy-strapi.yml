@@ -61,7 +61,7 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
-          terraform init
+          terraform init -upgrade
           terraform apply -auto-approve \
             -var-file="terraform.tfvars.json" \
             -var="github_token=$GH_PAT"
