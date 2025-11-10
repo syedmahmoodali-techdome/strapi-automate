@@ -37,8 +37,8 @@ module "app_service" {
   location              = var.clinic_region
   plan_sku              = var.azure_app_service_plan_sku
   clinic_name           = var.clinic_name
-  repo_url              = var.strapi_repo
-  repo_branch           = var.strapi_branch
+  #repo_url              = var.strapi_repo
+  #repo_branch           = var.strapi_branch
   repo_subdir           = var.strapi_repo_subdir
   admin_email           = var.strapi_admin_email
   admin_password        = var.strapi_admin_password
