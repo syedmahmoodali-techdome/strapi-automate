@@ -67,16 +67,17 @@ jobs:
       - name: Capture Terraform Outputs
         id: tfout
         run: |
+          # App Service & ACR
           echo "app_service_name=$(terraform output -raw app_service_name)" >> $GITHUB_OUTPUT
           echo "resource_group_name=$(terraform output -raw resource_group_name)" >> $GITHUB_OUTPUT
           echo "acr_name=$(terraform output -raw acr_name)" >> $GITHUB_OUTPUT
           echo "acr_login_server=$(terraform output -raw acr_login_server)" >> $GITHUB_OUTPUT
 
           # PostgreSQL outputs
-          echo "db_host=$(terraform output -raw db_fqdn)" >> $GITHUB_OUTPUT
+          echo "db_host=$(terraform output -raw db_host)" >> $GITHUB_OUTPUT
           echo "db_port=5432" >> $GITHUB_OUTPUT
           echo "db_name=$(terraform output -raw db_name)" >> $GITHUB_OUTPUT
-          echo "db_user=$(terraform output -raw db_username)" >> $GITHUB_OUTPUT
+          echo "db_user=$(terraform output -raw db_user)" >> $GITHUB_OUTPUT
           echo "db_password=$(terraform output -raw db_password)" >> $GITHUB_OUTPUT
 
   deploy:
