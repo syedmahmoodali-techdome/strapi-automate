@@ -1,4 +1,4 @@
-name: Deploy Strapi CMS (Docker Ephemeral)
+name: Deploy Strapi CMS (Dockerized)
 
 on:
   workflow_dispatch:
@@ -11,17 +11,16 @@ jobs:
     outputs:
       app_service_name: ${{ steps.tfout.outputs.app_service_name }}
       resource_group_name: ${{ steps.tfout.outputs.resource_group_name }}
+      azure_registry_name: ${{ steps.tfout.outputs.azure_registry_name }}
+      azure_registry_login_server: ${{ steps.tfout.outputs.azure_registry_login_server }}
 
     steps:
-      # 1️⃣ Checkout infra repo
       - name: Checkout infra repo
         uses: actions/checkout@v4
 
-      # 2️⃣ Install jq
       - name: Install jq
         run: sudo apt-get update -y && sudo apt-get install -y jq
 
-      # 3️⃣ Generate terraform.tfvars.json
       - name: Generate terraform.tfvars.json
         run: |
           jq '{
@@ -37,50 +36,36 @@ jobs:
             db_username: .database.username,
             db_password: .database.password,
             azure_resource_group_prefix: .azure.resource_group_prefix,
-            azure_app_service_plan_sku: .azure.app_service_plan_sku,
-            linked_storefront_url: .integration.linked_storefront_url,
-            backend_url: .integration.backend_url,
-            brand_primary_color: .clinic.branding.primary_color,
-            brand_secondary_color: .clinic.branding.secondary_color,
-            brand_logo_url: .clinic.branding.logo_url,
-            brand_favicon_url: .clinic.branding.favicon_url
+            azure_app_service_plan_sku: .azure.app_service_plan_sku
           }' clinic-config.json > terraform.tfvars.json
 
-          echo "✅ terraform.tfvars.json created:"
-          cat terraform.tfvars.json
-
-      # 4️⃣ Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      # 5️⃣ Terraform Init + Apply
       - name: Terraform Init & Apply
         env:
           ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
           ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           terraform init
-          terraform apply -auto-approve \
-            -var-file="terraform.tfvars.json" \
-            -var="github_token=$GH_PAT"
+          terraform apply -auto-approve -var-file="terraform.tfvars.json"
 
-      # 6️⃣ Capture Terraform Outputs
       - name: Capture Terraform Outputs
         id: tfout
         run: |
           echo "app_service_name=$(terraform output -raw app_service_name)" >> $GITHUB_OUTPUT
           echo "resource_group_name=$(terraform output -raw resource_group_name)" >> $GITHUB_OUTPUT
-
+          echo "azure_registry_name=$(terraform output -raw azure_registry_name)" >> $GITHUB_OUTPUT
+          echo "azure_registry_login_server=$(terraform output -raw azure_registry_login_server)" >> $GITHUB_OUTPUT
 
   deploy:
     needs: terraform
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout Strapi Source
+      # 1️⃣ Checkout Strapi repo (read-only)
       - name: Checkout Strapi Source
         uses: actions/checkout@v4
         with:
@@ -88,11 +73,17 @@ jobs:
           token: ${{ secrets.GH_PAT }}
           path: ecommpoc
 
-      # 2️⃣ Build Docker image (no push)
-      - name: Build Strapi Docker Image
-        working-directory: ecommpoc/my-strapi-project
+      # 2️⃣ Copy subdir for build
+      - name: Copy Strapi Project
         run: |
-          cat <<'EOF' > Dockerfile
+          mkdir strapi-app
+          cp -r ecommpoc/my-strapi-project/* strapi-app/
+
+      # 3️⃣ Create Dockerfile dynamically (no change to repo)
+      - name: Create Dockerfile
+        working-directory: strapi-app
+        run: |
+          cat > Dockerfile <<'EOF'
           FROM node:18-alpine
           WORKDIR /app
           COPY package*.json ./
@@ -103,62 +94,63 @@ jobs:
           CMD ["npm", "run", "start"]
           EOF
 
-          docker build -t strapi-app .
-
-      # 3️⃣ Verify container works (optional but good sanity)
-      - name: Run Strapi container test
+      # 4️⃣ Build Docker image locally
+      - name: Build Docker image
         run: |
-          docker run -d --name strapi-test -p 1337:1337 strapi-app
-          echo "⏳ Waiting for Strapi to start..."
-          sleep 15
-          docker logs strapi-test | tail -n 20 || true
+          docker build -t strapi-local:latest ./strapi-app
+
+      # 5️⃣ Run the container locally to test
+      - name: Run test container
+        run: |
+          docker run -d -p 1337:1337 --name strapi-test strapi-local:latest
+          echo "Waiting for Strapi to start..."
+          sleep 20
+          curl -I http://localhost:1337 || (docker logs strapi-test && exit 1)
           docker stop strapi-test
           docker rm strapi-test
 
-      # 4️⃣ Extract build artifact from container
-      - name: Extract app build from Docker image
-        run: |
-          container_id=$(docker create strapi-app)
-          docker cp $container_id:/app ./strapi-app
-          docker rm $container_id
-          cd strapi-app
-          zip -r ../strapi-release.zip . -x "*.git*" "*.github*" "node_modules/.cache*" "tests/*"
-          cd ..
-          ls -lh strapi-release.zip
-
-      # 5️⃣ Login to Azure
+      # 6️⃣ Azure Login
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           auth-type: SERVICE_PRINCIPAL
 
-      # 6️⃣ Disable App Service build
-      - name: Disable Build During Deployment
+      # 7️⃣ Get ACR credentials
+      - name: Get ACR credentials
+        id: acr
         run: |
-          az webapp config appsettings set \
+          LOGIN_SERVER=${{ needs.terraform.outputs.azure_registry_login_server }}
+          az acr login --name ${{ needs.terraform.outputs.azure_registry_name }}
+          echo "login_server=$LOGIN_SERVER" >> $GITHUB_OUTPUT
+
+      # 8️⃣ Tag and push image to ACR
+      - name: Push image to ACR
+        run: |
+          LOGIN_SERVER=${{ needs.terraform.outputs.azure_registry_login_server }}
+          docker tag strapi-local:latest $LOGIN_SERVER/strapi:${{ github.sha }}
+          docker push $LOGIN_SERVER/strapi:${{ github.sha }}
+
+      # 9️⃣ Configure App Service to use new image
+      - name: Update App Service to use new image
+        run: |
+          az webapp config container set \
             --name "${{ needs.terraform.outputs.app_service_name }}" \
             --resource-group "${{ needs.terraform.outputs.resource_group_name }}" \
-            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false PORT=8080
+            --docker-custom-image-name "${{ needs.terraform.outputs.azure_registry_login_server }}/strapi:${{ github.sha }}" \
+            --docker-registry-server-url "https://${{ needs.terraform.outputs.azure_registry_login_server }}"
 
-      # 7️⃣ Deploy ZIP to Azure App Service
-      - name: Deploy to Azure
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: ${{ needs.terraform.outputs.app_service_name }}
-          package: ./strapi-release.zip
-
-      # 8️⃣ Verify Strapi is up
-      - name: Verify Strapi Startup
+      # 🔟 Verify deployment
+      - name: Verify Strapi on Azure
         run: |
-          echo "⏳ Waiting for Strapi to start..."
-          for i in {1..10}; do
+          echo "Waiting for Strapi on Azure..."
+          for i in {1..15}; do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://${{ needs.terraform.outputs.app_service_name }}.azurewebsites.net/admin || true)
             if [ "$STATUS" = "200" ]; then
               echo "✅ Strapi is up!"
               exit 0
             fi
-            echo "Waiting... ($i/10)"
+            echo "⏳ Waiting... ($i/15)"
             sleep 15
           done
           echo "❌ Strapi did not respond in time."
