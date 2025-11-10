@@ -23,7 +23,7 @@ resource "azurerm_service_plan" "strapi" {
 # ===========================
 # Azure Web App (Container)
 # ===========================
-resource "azurerm_linux_web_app" "strapi" {
+resource "azurerm_linux_web_app" "app_service" {
   name                = "${var.clinic_name}-cms"
   resource_group_name = var.resource_group_name
   location            = var.location
