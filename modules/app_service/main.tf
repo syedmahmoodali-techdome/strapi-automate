@@ -12,16 +12,16 @@ resource "azurerm_container_registry" "acr" {
 # -------------------------------
 # Azure App Service Plan (Linux)
 # -------------------------------
-resource "azurerm_service_plan" "app_plan" {
+resource "azurerm_service_plan" "strapi" {
   name                = "${lower(var.clinic_name)}-plan"
   location            = var.location
   resource_group_name = var.resource_group_name
-  kind                = "Linux"
-  reserved            = true  # Required for Linux
 
-  sku_name = var.azure_app_service_plan_sku # e.g., "B1", "B2"
-  os_type  = "Linux"
+  sku_name = var.azure_app_service_plan_sku  # e.g., "B1", "B2", "S1"
+  kind     = "Linux"                         # kind is correct for Linux
+  reserved = true                             # required for Linux containers
 }
+
 
 # -------------------------------
 # Azure Linux Web App (App Service)
