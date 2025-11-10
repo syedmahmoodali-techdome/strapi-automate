@@ -118,17 +118,22 @@ jobs:
           # Create temporary Dockerfile in runner
           cat <<EOF > Dockerfile
           FROM node:18-alpine
-
+          RUN apk add --no-cache bash python3 make g++ libc-dev postgresql-dev
           WORKDIR /usr/src/app
           COPY package.json package-lock.json ./
           RUN npm install
           COPY . .
+          ENV DATABASE_CLIENT=postgres
+          ENV DATABASE_HOST=${{ steps.tfout.outputs.db_host }}
+          ENV DATABASE_PORT=${{ steps.tfout.outputs.db_port }}
+          ENV DATABASE_NAME=${{ steps.tfout.outputs.db_name }}
+          ENV DATABASE_USERNAME=${{ steps.tfout.outputs.db_user }}
+          ENV DATABASE_PASSWORD=${{ steps.tfout.outputs.db_password }}
           RUN npm run build
           EXPOSE 1337
           CMD ["npm", "run", "start"]
           EOF
 
-          # Build Docker image
           docker build -t strapi-temp:latest .
 
 
