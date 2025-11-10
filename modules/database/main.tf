@@ -24,3 +24,16 @@ output "connection_string" {
   value = "postgresql://${var.db_username}:${var.db_password}@${azurerm_postgresql_flexible_server.this.fqdn}:5432/${var.db_name}"
   sensitive = true
 }
+
+output "db_name" {
+  value = var.db_name
+}
+
+output "db_username" {
+  value = var.db_username
+}
+
+output "db_password" {
+  value     = var.db_password
+  sensitive = true
+}
