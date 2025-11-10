@@ -22,8 +22,8 @@ resource "azurerm_linux_web_app" "strapi" {
     application_stack {
       node_version = "18-lts"
     }
-    # ✅ Correct startup command for subfolder repo
-    app_command_line = "cd my-strapi-project && npm run start"
+    # ✅ Correct startup command
+    app_command_line = "npm run start"
   }
 
   app_settings = {
