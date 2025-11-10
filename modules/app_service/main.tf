@@ -1,6 +1,3 @@
-# -------------------------------
-# Azure Container Registry (ACR)
-# -------------------------------
 resource "azurerm_container_registry" "acr" {
   name                = "${replace(lower(var.clinic_name), "-", "")}acr"
   resource_group_name = var.resource_group_name
@@ -9,9 +6,6 @@ resource "azurerm_container_registry" "acr" {
   admin_enabled       = true
 }
 
-# -------------------------------
-# Azure Linux Web App (App Service)
-# -------------------------------
 resource "azurerm_linux_web_app" "app_service" {
   name                = "${lower(var.clinic_name)}-app"
   resource_group_name = var.resource_group_name
@@ -21,10 +15,9 @@ resource "azurerm_linux_web_app" "app_service" {
   site_config {
     always_on = true
 
-    # Correct way to define Docker container in provider v4+
     application_stack {
-      docker_image_name   = "strapi-app:latest"
-      docker_registry_url = azurerm_container_registry.acr.login_server # just hostname
+      docker_image_name       = "strapi-app:latest"
+      docker_registry_url     = azurerm_container_registry.acr.login_server
       docker_registry_username = azurerm_container_registry.acr.admin_username
       docker_registry_password = azurerm_container_registry.acr.admin_password
     }
@@ -33,25 +26,7 @@ resource "azurerm_linux_web_app" "app_service" {
   https_only = true
 }
 
-# -------------------------------
-# Outputs
-# -------------------------------
-output "acr_name" {
-  description = "Name of the Azure Container Registry"
-  value       = azurerm_container_registry.acr.name
-}
-
-output "acr_login_server" {
-  description = "Login server URL of the Azure Container Registry"
-  value       = azurerm_container_registry.acr.login_server
-}
-
 output "cms_url" {
-  description = "Public URL of the deployed Strapi CMS"
-  value       = azurerm_linux_web_app.app_service.default_hostname
+  value = azurerm_linux_web_app.app_service.default_hostname
 }
-
-output "app_service_name" {
-  description = "Name of the Azure App Service"
-  value       = azurerm_linux_web_app.app_service.name
-}
+    
