@@ -34,3 +34,7 @@ variable "branch" {
   default     = "main"
 }
 
+variable "service_plan_id" {
+  description = "The ID of the Azure App Service plan where the app will be deployed"
+  type        = string
+}
