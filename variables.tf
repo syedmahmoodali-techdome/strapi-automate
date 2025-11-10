@@ -27,6 +27,13 @@ variable "github_token" {
   type        = string
 }
 
+variable "location" {
+  description = "The Azure region where resources will be created"
+  type        = string
+  default     = "Central India"
+}
+
+
 
 #variable "github_token" {
 #  description = "GitHub Personal Access Token"
