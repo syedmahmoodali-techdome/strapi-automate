@@ -64,6 +64,19 @@ jobs:
       #   run: terraform init -upgrade
 
       # 5️⃣ Terraform Init & Apply
+      # - name: Terraform Init & Apply
+      #   env:
+      #     ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      #     ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      #     ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      #     ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      #     GH_PAT: ${{ secrets.GH_PAT }}
+      #   run: |
+      #     terraform init 
+      #     terraform apply -auto-approve \
+      #       -var-file="terraform.tfvars.json" \
+      #       -var="github_token=$GH_PAT"
+
       - name: Terraform Init & Apply
         env:
           ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
@@ -72,10 +85,9 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
-          terraform init 
-          terraform apply -auto-approve \
-            -var-file="terraform.tfvars.json" \
-            -var="github_token=$GH_PAT"
+          terraform init -upgrade
+          terraform apply -auto-approve -var-file="terraform.tfvars.json" -var="github_token=$GH_PAT"
+
 
       # 6️⃣ Capture Terraform outputs
       - name: Capture Terraform Outputs
