@@ -130,4 +130,4 @@ variable "brand_favicon_url" {
 variable "plan_sku" { type = string }
 variable "repo_url" { type = string }
 variable "repo_branch" { type = string }
-variable "repo_subdir" { type = string, default = "" }
+#variable "repo_subdir" { type = string, default = "" }
