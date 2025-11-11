@@ -91,6 +91,13 @@ variable "transfer_token_salt" {
   sensitive   = true
 }
 
+variable "jwt_secret" {
+  description = "Strapi JWT secret for user authentication"
+  type        = string
+  sensitive   = true
+}
+
+
 # Optional fields
 variable "linked_storefront_url" {
   type    = string
