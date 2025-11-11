@@ -1,4 +1,4 @@
-name: Deploy Strapi CMS (Docker + Terraform)
+name: Deploy Open Source Strapi (Docker + Terraform)
 
 on:
   workflow_dispatch:
@@ -32,22 +32,11 @@ jobs:
             clinic_name: .clinic.name,
             clinic_environment: .clinic.environment,
             clinic_region: .clinic.region,
-            strapi_repo: .strapi.repo,
-            strapi_branch: .strapi.branch,
-            strapi_repo_subdir: .strapi.repo_subdir,
-            strapi_admin_email: .strapi.admin_email,
-            strapi_admin_password: .strapi.admin_password,
             db_name: .database.name,
             db_username: .database.username,
             db_password: .database.password,
             azure_resource_group_prefix: .azure.resource_group_prefix,
-            azure_app_service_plan_sku: .azure.app_service_plan_sku,
-            linked_storefront_url: .integration.linked_storefront_url,
-            backend_url: .integration.backend_url,
-            brand_primary_color: .clinic.branding.primary_color,
-            brand_secondary_color: .clinic.branding.secondary_color,
-            brand_logo_url: .clinic.branding.logo_url,
-            brand_favicon_url: .clinic.branding.favicon_url
+            azure_app_service_plan_sku: .azure.app_service_plan_sku
           }' clinic-config.json > terraform.tfvars.json
 
       - name: Setup Terraform
@@ -59,21 +48,17 @@ jobs:
           ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
-          terraform init 
-          terraform apply -auto-approve -var-file="terraform.tfvars.json" -var="github_token=$GH_PAT"
+          terraform init
+          terraform apply -auto-approve -var-file="terraform.tfvars.json"
 
       - name: Capture Terraform Outputs
         id: tfout
         run: |
-          # App Service & ACR
           echo "app_service_name=$(terraform output -raw app_service_name)" >> $GITHUB_OUTPUT
           echo "resource_group_name=$(terraform output -raw resource_group_name)" >> $GITHUB_OUTPUT
           echo "acr_name=$(terraform output -raw acr_name)" >> $GITHUB_OUTPUT
           echo "acr_login_server=$(terraform output -raw acr_login_server)" >> $GITHUB_OUTPUT
-
-          # PostgreSQL outputs
           echo "db_host=$(terraform output -raw db_host)" >> $GITHUB_OUTPUT
           echo "db_port=5432" >> $GITHUB_OUTPUT
           echo "db_name=$(terraform output -raw db_name)" >> $GITHUB_OUTPUT
@@ -85,26 +70,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Strapi source
+      - name: Checkout open-source Strapi
         uses: actions/checkout@v4
         with:
-          repository: techdome-io/ecommpoc
-          token: ${{ secrets.GH_PAT }}
-          path: ecommpoc
+          repository: strapi/strapi
+          path: strapi
 
       - name: Build Docker image
-        working-directory: ecommpoc/my-strapi-project
+        working-directory: strapi
         run: |
           cat <<EOF > Dockerfile
-          FROM node:18-alpine
+          FROM node:20-alpine
           RUN apk add --no-cache bash python3 make g++ libc-dev postgresql-dev
-          WORKDIR /usr/src/app
-
-          COPY package.json package-lock.json ./
-          RUN npm install
+          WORKDIR /app
+          COPY package*.json ./
+          RUN npm ci
           COPY . .
 
-          # ✅ Strapi DB configuration
+          ENV NODE_ENV=production
           ENV DATABASE_CLIENT=postgres
           ENV DATABASE_HOST="${{ needs.terraform.outputs.db_host }}"
           ENV DATABASE_PORT="${{ needs.terraform.outputs.db_port }}"
@@ -112,10 +95,8 @@ jobs:
           ENV DATABASE_USERNAME="${{ needs.terraform.outputs.db_user }}"
           ENV DATABASE_PASSWORD="${{ needs.terraform.outputs.db_password }}"
 
-          # ✅ REQUIRED for Strapi v5 admin login
+          # Required Strapi secrets
           ENV ADMIN_JWT_SECRET="${{ secrets.ADMIN_JWT_SECRET }}"
-
-          # ✅ REQUIRED for Strapi v5 production
           ENV APP_KEYS="${{ secrets.APP_KEYS }}"
           ENV API_TOKEN_SALT="${{ secrets.API_TOKEN_SALT }}"
           ENV TRANSFER_TOKEN_SALT="${{ secrets.TRANSFER_TOKEN_SALT }}"
@@ -126,15 +107,6 @@ jobs:
           EOF
 
           docker build -t strapi-temp:latest .
-
-      # local testing removed because Azure DB is used
-      # - name: Test container locally
-      #   run: |
-      #     docker run -d -p 1337:1337 --name strapi-test strapi-temp:latest
-      #     echo "Waiting for Strapi to start..."
-      #     sleep 20
-      #     curl -f http://localhost:1337/admin || (docker logs strapi-test && exit 1)
-      #     docker stop strapi-test && docker rm strapi-test
 
       - name: Azure Login
         uses: azure/login@v2
@@ -148,7 +120,7 @@ jobs:
       - name: Push image to ACR
         run: |
           ACR_SERVER=${{ needs.terraform.outputs.acr_login_server }}
-          IMAGE_NAME=strapi-app:latest
+          IMAGE_NAME=strapi-open:latest
           docker tag strapi-temp:latest $ACR_SERVER/$IMAGE_NAME
           docker push $ACR_SERVER/$IMAGE_NAME
 
@@ -158,12 +130,12 @@ jobs:
           REGISTRY_PASS=$(az acr credential show --name ${{ needs.terraform.outputs.acr_name }} --query passwords[0].value -o tsv)
 
           az webapp config container set \
-          --name "${{ needs.terraform.outputs.app_service_name }}" \
-          --resource-group "${{ needs.terraform.outputs.resource_group_name }}" \
-          --container-image-name "${{ needs.terraform.outputs.acr_login_server }}/strapi-app:latest" \
-          --container-registry-url "https://${{ needs.terraform.outputs.acr_login_server }}" \
-          --container-registry-user "$REGISTRY_USER" \
-          --container-registry-password "$REGISTRY_PASS"
+            --name "${{ needs.terraform.outputs.app_service_name }}" \
+            --resource-group "${{ needs.terraform.outputs.resource_group_name }}" \
+            --container-image-name "${{ needs.terraform.outputs.acr_login_server }}/strapi-open:latest" \
+            --container-registry-url "https://${{ needs.terraform.outputs.acr_login_server }}" \
+            --container-registry-username "$REGISTRY_USER" \
+            --container-registry-password "$REGISTRY_PASS"
 
       - name: Verify Strapi app
         run: |
