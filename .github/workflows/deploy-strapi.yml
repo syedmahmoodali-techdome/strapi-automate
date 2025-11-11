@@ -40,7 +40,6 @@ jobs:
             clinic_region: .clinic.region,
             strapi_repo: .strapi.repo,
             strapi_branch: .strapi.branch,
-            strapi_repo_subdir: .strapi.repo_subdir,
             strapi_admin_email: .strapi.admin_email,
             strapi_admin_password: .strapi.admin_password,
             db_name: .database.name,
@@ -84,14 +83,12 @@ jobs:
       - name: Capture Terraform outputs
         id: outputs
         run: |
-          # required outputs: acr_name, acr_login_server, app_service_name, resource_group_name, db_host, db_name, db_user, db_password, cms_url
           echo "::debug::capturing terraform outputs"
           echo "acr_name=$(terraform output -raw acr_name)" >> $GITHUB_OUTPUT
           echo "acr_login_server=$(terraform output -raw acr_login_server)" >> $GITHUB_OUTPUT
           echo "app_service_name=$(terraform output -raw app_service_name)" >> $GITHUB_OUTPUT
           echo "resource_group_name=$(terraform output -raw resource_group_name)" >> $GITHUB_OUTPUT
           echo "db_host=$(terraform output -raw db_host)" >> $GITHUB_OUTPUT
-          # db_port might not be exported; default to 5432 if not present
           if terraform output -json db_port >/dev/null 2>&1; then
             echo "db_port=$(terraform output -raw db_port)" >> $GITHUB_OUTPUT
           else
@@ -100,11 +97,9 @@ jobs:
           echo "db_name=$(terraform output -raw db_name)" >> $GITHUB_OUTPUT
           echo "db_user=$(terraform output -raw db_user)" >> $GITHUB_OUTPUT
           echo "db_password=$(terraform output -raw db_password)" >> $GITHUB_OUTPUT
-          # cms_url is optional, fallback to app service default hostname if available
           if terraform output -json cms_url >/dev/null 2>&1; then
             echo "cms_url=$(terraform output -raw cms_url)" >> $GITHUB_OUTPUT
           else
-            # derive default hostname from app service name
             APP=$(terraform output -raw app_service_name)
             echo "cms_url=${APP}.azurewebsites.net" >> $GITHUB_OUTPUT
           fi
@@ -117,7 +112,6 @@ jobs:
       - name: Checkout runner (not Terraform code) - minimal
         run: echo "deploy job started"
 
-      # Clone the private company repo (ecommpoc) with your PAT (no changes to repo)
       - name: Checkout company Strapi repo (private)
         uses: actions/checkout@v4
         with:
@@ -129,53 +123,33 @@ jobs:
       - name: Show repo layout (debug)
         run: ls -la ecommpoc || true
 
-      # Create Dockerfile dynamically inside the project subdir
       - name: Create Dockerfile dynamically (inside my-strapi-project)
         working-directory: ecommpoc/my-strapi-project
         run: |
           cat <<'DOCKERFILE' > Dockerfile
-          # Use Node 18 Debian variant (matches your working image)
           FROM node:18-bullseye
-
-          # Set working directory
           WORKDIR /app
-
-          # Copy only package files first to leverage cache
           COPY package*.json ./
-
-          # Install dependencies (production install is fine, but build needs dev deps)
           RUN npm install
-
-          # Copy rest of the app
           COPY . .
-
-          # Build the Strapi admin panel
           RUN npm run build
-
-          # Expose Strapi default port
           EXPOSE 1337
-
-          # Default production env (overridable at runtime)
+          ENV PORT=1337
           ENV NODE_ENV=production
-
-          # Start command
           CMD ["npm", "run", "start"]
           DOCKERFILE
           echo "Dockerfile created in ecommpoc/my-strapi-project"
 
-      # Login to Azure so we can push to ACR and update webapp
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Login to ACR (name and server retrieved from terraform outputs)
       - name: ACR Login
         run: |
           echo "ACR_NAME=${{ needs.terraform.outputs.acr_name }}"
           az acr login --name "${{ needs.terraform.outputs.acr_name }}"
 
-      # Build and tag image with commit short SHA
       - name: Build Docker image
         working-directory: ecommpoc/my-strapi-project
         run: |
@@ -186,12 +160,9 @@ jobs:
           docker build -t "$IMAGE" .
           echo "IMAGE=$IMAGE" >> $GITHUB_ENV
 
-      # Push to ACR
       - name: Push Docker image to ACR
-        run: |
-          docker push "$IMAGE"
+        run: docker push "$IMAGE"
 
-      # Get ACR credentials (to configure App Service)
       - name: Get ACR credentials
         id: acrcreds
         run: |
@@ -201,14 +172,12 @@ jobs:
           echo "ACR_USER=$USER" >> $GITHUB_ENV
           echo "ACR_PASS=$PASS" >> $GITHUB_ENV
 
-      # Configure App Service to pull the image from ACR and set app settings
       - name: Configure App Service container + app settings
         run: |
           RG="${{ needs.terraform.outputs.resource_group_name }}"
           APP="${{ needs.terraform.outputs.app_service_name }}"
           IMAGE_NAME_ENV="$IMAGE"
 
-          # Set container image and registry credentials
           az webapp config container set \
             --name "$APP" \
             --resource-group "$RG" \
@@ -217,7 +186,6 @@ jobs:
             --docker-registry-server-user "$ACR_USER" \
             --docker-registry-server-password "$ACR_PASS"
 
-          # Build the list of app settings (DB + Strapi secrets + port)
           APP_SETTINGS=(
             "WEBSITES_PORT=1337"
             "DATABASE_CLIENT=postgres"
@@ -226,30 +194,29 @@ jobs:
             "DATABASE_NAME=${{ needs.terraform.outputs.db_name }}"
             "DATABASE_USERNAME=${{ needs.terraform.outputs.db_user }}"
             "DATABASE_PASSWORD=${{ needs.terraform.outputs.db_password }}"
+            "DATABASE_SSL=true"
+            "DATABASE_SSL__REJECT_UNAUTHORIZED=false"
             "ADMIN_JWT_SECRET=${{ secrets.ADMIN_JWT_SECRET }}"
             "APP_KEYS=${{ secrets.APP_KEYS }}"
             "API_TOKEN_SALT=${{ secrets.API_TOKEN_SALT }}"
           )
 
-          # Convert to azure CLI format
           SETTINGS_JSON=""
           for s in "${APP_SETTINGS[@]}"; do
             SETTINGS_JSON="$SETTINGS_JSON $s"
           done
 
-          # Apply app settings
           az webapp config appsettings set --name "$APP" --resource-group "$RG" --settings $SETTINGS_JSON
 
-      # Restart app so new image & settings are picked up
       - name: Restart App Service
         run: |
           az webapp restart --name "${{ needs.terraform.outputs.app_service_name }}" --resource-group "${{ needs.terraform.outputs.resource_group_name }}"
 
-      # Wait/verify the /admin page is reachable (long timeout)
       - name: Wait for Strapi /admin to be available
         run: |
           CMS_HOST="${{ needs.terraform.outputs.cms_url }}"
           echo "Waiting for https://$CMS_HOST/admin to return HTTP 200 ..."
+          sleep 60
           for i in $(seq 1 30); do
             HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://$CMS_HOST/admin" || true)
             echo "Attempt $i: status=$HTTP_CODE"
