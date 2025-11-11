@@ -122,3 +122,8 @@ resource "random_password" "transfer_token_salt" {
   length  = 32
   special = false
 }
+
+resource "random_password" "jwt_secret" {
+  length  = 32
+  special = false
+}
