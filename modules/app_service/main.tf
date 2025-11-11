@@ -15,8 +15,10 @@ resource "azurerm_linux_web_app" "app_service" {
   site_config {
     always_on = true
 
-    # ✅ Works with AzureRM v3.x
-    linux_fx_version = "DOCKER|${azurerm_container_registry.acr.login_server}/${var.image_name}:${var.image_tag}"
+    application_stack {
+      docker_image_name   = "${azurerm_container_registry.acr.login_server}/${var.image_name}:${var.image_tag}"
+      docker_registry_url = "https://${azurerm_container_registry.acr.login_server}"
+    }
   }
 
   app_settings = {
@@ -43,11 +45,14 @@ resource "azurerm_linux_web_app" "app_service" {
 
     # Linked URLs
     LINKED_STOREFRONT_URL     = var.linked_storefront_url
+  }
 
-    # ✅ ACR credentials for App Service
-    DOCKER_REGISTRY_SERVER_URL      = azurerm_container_registry.acr.login_server
-    DOCKER_REGISTRY_SERVER_USERNAME = azurerm_container_registry.acr.admin_username
-    DOCKER_REGISTRY_SERVER_PASSWORD = azurerm_container_registry.acr.admin_password
+  # ✅ Define registry credentials in a dedicated block (Terraform 3.x way)
+  container_registry {
+    admin_user_enabled = true
+    server_url         = azurerm_container_registry.acr.login_server
+    username           = azurerm_container_registry.acr.admin_username
+    password           = azurerm_container_registry.acr.admin_password
   }
 }
 
