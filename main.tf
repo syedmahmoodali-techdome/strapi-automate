@@ -50,26 +50,48 @@ resource "azurerm_service_plan" "strapi" {
 # App Service
 # ----------------------
 module "app_service" {
-  source                = "./modules/app_service"
-  service_plan_id       = azurerm_service_plan.strapi.id
-  resource_group_name   = module.resource_group.name
-  location              = var.clinic_region
-  clinic_name           = var.clinic_name
-  repo_url              = var.strapi_repo
-  repo_branch           = var.strapi_branch
-  repo_subdir           = var.strapi_repo_subdir
-  admin_email           = var.strapi_admin_email
-  admin_password        = var.strapi_admin_password
-  db_connection_string  = module.database.connection_string
-  plan_sku              = var.azure_app_service_plan_sku
+  source              = "./modules/app_service"
+  service_plan_id     = azurerm_service_plan.strapi.id
+  resource_group_name = module.resource_group.name
+  location            = var.clinic_region
+  clinic_name         = var.clinic_name
+
+  # Docker Image Info (update to your image/tag)
+  image_name = "strapi-cms"
+  image_tag  = "latest"
+
+  # Database configuration
+  db_host     = module.database.db_fqdn
+  db_name     = module.database.db_name
+  db_user     = module.database.db_username
+  db_password = module.database.db_password
+
+  # Strapi configuration
+  strapi_admin_email    = var.strapi_admin_email
+  strapi_admin_password = var.strapi_admin_password
+
+  # Security / Keys
+  app_keys            = random_password.app_keys.result
+  api_token_salt      = random_password.api_token_salt.result
+  admin_jwt_secret    = random_password.admin_jwt_secret.result
+  transfer_token_salt = random_password.transfer_token_salt.result
+
+  # Optional integrations
   linked_storefront_url = var.linked_storefront_url
   backend_url           = var.backend_url
   github_token          = var.github_token
 
+  # Branding
   brand_primary_color   = var.brand_primary_color
   brand_secondary_color = var.brand_secondary_color
   brand_logo_url        = var.brand_logo_url
   brand_favicon_url     = var.brand_favicon_url
+
+  # Metadata
+  plan_sku = var.azure_app_service_plan_sku
+  repo_url = var.strapi_repo
+  repo_branch = var.strapi_branch
+  repo_subdir = var.strapi_repo_subdir
 }
 
 
