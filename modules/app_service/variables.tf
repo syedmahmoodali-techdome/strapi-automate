@@ -30,5 +30,8 @@ variable "db_host" {
 }
 
 variable "db_port" {
+  description = "Database port"
   type        = number
-  description =
+  default     = 5432
+}
+
