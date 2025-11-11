@@ -57,6 +57,7 @@ resource "azurerm_linux_web_app" "app_service" {
     BRAND_SECONDARY_COLOR = var.brand_secondary_color
     BRAND_LOGO_URL        = var.brand_logo_url
     BRAND_FAVICON_URL     = var.brand_favicon_url
+    JWT_SECRET = var.jwt_secret
   }
 }
 
