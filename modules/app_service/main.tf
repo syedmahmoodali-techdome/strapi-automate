@@ -1,3 +1,4 @@
+# Container Registry
 resource "azurerm_container_registry" "acr" {
   name                = "${replace(lower(var.clinic_name), "-", "")}acr"
   resource_group_name = var.resource_group_name
@@ -6,6 +7,7 @@ resource "azurerm_container_registry" "acr" {
   admin_enabled       = true
 }
 
+# Linux Web App
 resource "azurerm_linux_web_app" "app_service" {
   name                = "${lower(var.clinic_name)}-app"
   resource_group_name = var.resource_group_name
@@ -15,6 +17,7 @@ resource "azurerm_linux_web_app" "app_service" {
   site_config {
     always_on = true
 
+    # ✅ For ACR-deployed containers (Terraform >= v4.0)
     application_stack {
       docker_image_name   = "${azurerm_container_registry.acr.login_server}/${var.image_name}:${var.image_tag}"
       docker_registry_url = "https://${azurerm_container_registry.acr.login_server}"
@@ -25,7 +28,7 @@ resource "azurerm_linux_web_app" "app_service" {
     WEBSITES_PORT             = "1337"
     NODE_ENV                  = "production"
 
-    # Database configuration
+    # Database Configuration
     DATABASE_CLIENT           = "postgres"
     DATABASE_HOST             = var.db_host
     DATABASE_PORT             = "5432"
@@ -33,11 +36,11 @@ resource "azurerm_linux_web_app" "app_service" {
     DATABASE_USERNAME         = var.db_user
     DATABASE_PASSWORD         = var.db_password
 
-    # Strapi credentials
+    # Strapi Admin
     STRAPI_ADMIN_EMAIL        = var.strapi_admin_email
     STRAPI_ADMIN_PASSWORD     = var.strapi_admin_password
 
-    # Strapi secrets
+    # Strapi Secrets
     APP_KEYS                  = var.app_keys
     API_TOKEN_SALT            = var.api_token_salt
     ADMIN_JWT_SECRET          = var.admin_jwt_secret
@@ -45,14 +48,15 @@ resource "azurerm_linux_web_app" "app_service" {
 
     # Linked URLs
     LINKED_STOREFRONT_URL     = var.linked_storefront_url
+
+    # ✅ Registry credentials (v4.x way)
+    DOCKER_REGISTRY_SERVER_URL      = "https://${azurerm_container_registry.acr.login_server}"
+    DOCKER_REGISTRY_SERVER_USERNAME = azurerm_container_registry.acr.admin_username
+    DOCKER_REGISTRY_SERVER_PASSWORD = azurerm_container_registry.acr.admin_password
   }
 
-  # ✅ Define registry credentials in a dedicated block (Terraform 3.x way)
-  container_registry {
-    admin_user_enabled = true
-    server_url         = azurerm_container_registry.acr.login_server
-    username           = azurerm_container_registry.acr.admin_username
-    password           = azurerm_container_registry.acr.admin_password
+  identity {
+    type = "SystemAssigned"
   }
 }
 
@@ -62,13 +66,4 @@ output "app_service_name" {
 }
 
 output "cms_url" {
-  value = azurerm_linux_web_app.app_service.default_hostname
-}
-
-output "acr_name" {
-  value = azurerm_container_registry.acr.name
-}
-
-output "acr_login_server" {
-  value = azurerm_container_registry.acr.login_server
-}
+  value
