@@ -1,52 +1,36 @@
-#########################################
-# Core Infrastructure Variables
-#########################################
-
-variable "service_plan_id" {
-  description = "ID of the App Service plan"
+variable "clinic_name" {
+  description = "Clinic name"
   type        = string
 }
 
 variable "resource_group_name" {
-  description = "Name of the Azure resource group"
+  description = "Azure resource group name"
   type        = string
 }
 
 variable "location" {
-  description = "Azure region where resources are deployed"
+  description = "Azure region"
   type        = string
 }
 
-variable "clinic_name" {
-  description = "Name of the clinic or environment used for naming resources"
+variable "service_plan_id" {
+  description = "App Service Plan ID"
   type        = string
 }
-
-#########################################
-# Container & Deployment Variables
-#########################################
-
-variable "image_name" {
-  description = "Docker image name for Strapi"
-  type        = string
-}
-
-variable "image_tag" {
-  description = "Docker image tag for Strapi"
-  type        = string
-}
-
-#########################################
-# Database Configuration
-#########################################
 
 variable "db_host" {
-  description = "Database host or FQDN"
+  description = "Database host"
   type        = string
+}
+
+variable "db_port" {
+  description = "Database port"
+  type        = number
+  default     = 5432
 }
 
 variable "db_name" {
-  description = "Database name for Strapi"
+  description = "Database name"
   type        = string
 }
 
@@ -61,106 +45,49 @@ variable "db_password" {
   sensitive   = true
 }
 
-#########################################
-# Strapi Admin & Secrets
-#########################################
-
 variable "strapi_admin_email" {
-  description = "Email for Strapi admin user"
+  description = "Admin email for Strapi"
   type        = string
 }
 
 variable "strapi_admin_password" {
-  description = "Password for Strapi admin user"
+  description = "Admin password for Strapi"
   type        = string
   sensitive   = true
 }
 
-variable "app_keys" {
-  description = "APP_KEYS for Strapi"
-  type        = string
-}
-
-variable "api_token_salt" {
-  description = "API_TOKEN_SALT for Strapi"
-  type        = string
-}
-
-variable "admin_jwt_secret" {
-  description = "Admin JWT secret used by Strapi"
-  type        = string
-}
-
-variable "transfer_token_salt" {
-  description = "Transfer token salt for Strapi"
-  type        = string
-}
-
-#########################################
-# Branding & Frontend Integration
-#########################################
-
 variable "linked_storefront_url" {
-  description = "Storefront URL linked with the Strapi CMS"
-  type        = string
-}
-
-variable "brand_primary_color" {
-  description = "Primary brand color used in CMS branding"
-  type        = string
-}
-
-variable "brand_secondary_color" {
-  description = "Secondary brand color used in CMS branding"
-  type        = string
-}
-
-variable "brand_logo_url" {
-  description = "Logo URL for CMS branding"
-  type        = string
-}
-
-variable "brand_favicon_url" {
-  description = "Favicon URL for CMS branding"
-  type        = string
-}
-
-#########################################
-# GitHub / Source Control
-#########################################
-
-variable "repo_url" {
-  description = "Repository URL containing the Dockerfile or source"
-  type        = string
-}
-
-variable "repo_branch" {
-  description = "Repository branch to deploy"
-  type        = string
-}
-
-variable "repo_subdir" {
-  description = "Optional subdirectory for the Strapi app in repo"
+  description = "Linked storefront URL"
   type        = string
   default     = ""
 }
 
-variable "github_token" {
-  description = "GitHub token for accessing private repositories"
-  type        = string
-  sensitive   = true
-}
-
-#########################################
-# Optional Environment Settings
-#########################################
-
 variable "backend_url" {
-  description = "Backend API base URL"
+  description = "Backend URL"
   type        = string
+  default     = ""
 }
 
-variable "plan_sku" {
-  description = "SKU tier of the App Service Plan"
+variable "brand_primary_color" {
+  description = "Primary brand color"
   type        = string
+  default     = "#000000"
+}
+
+variable "brand_secondary_color" {
+  description = "Secondary brand color"
+  type        = string
+  default     = "#FFFFFF"
+}
+
+variable "brand_logo_url" {
+  description = "Brand logo URL"
+  type        = string
+  default     = ""
+}
+
+variable "brand_favicon_url" {
+  description = "Brand favicon URL"
+  type        = string
+  default     = ""
 }
