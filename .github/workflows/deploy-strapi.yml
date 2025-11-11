@@ -94,36 +94,35 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: strapi/strapi
-          ref: main
+          # ref: main
           path: strapi
 
       # 2️⃣ Build Docker image
       - name: Build Docker image
-        working-directory: strapi
+        working-directory: strapi/examples/getstarted
         run: |
           cat <<EOF > Dockerfile
           FROM node:20-alpine
           RUN apk add --no-cache bash python3 make g++ libc-dev postgresql-dev
-          WORKDIR /usr/src/app
-
-          COPY package.json package-lock.json ./ 
+          WORKDIR /app
+          COPY package*.json ./
           RUN npm ci
           COPY . .
-
-          # ✅ Strapi database config
+    
+          ENV NODE_ENV=production
           ENV DATABASE_CLIENT=postgres
           ENV DATABASE_HOST="${{ needs.terraform.outputs.db_host }}"
           ENV DATABASE_PORT="${{ needs.terraform.outputs.db_port }}"
           ENV DATABASE_NAME="${{ needs.terraform.outputs.db_name }}"
           ENV DATABASE_USERNAME="${{ needs.terraform.outputs.db_user }}"
           ENV DATABASE_PASSWORD="${{ needs.terraform.outputs.db_password }}"
-
-          # ✅ Secrets required for production
+    
+          # Required Strapi secrets
           ENV ADMIN_JWT_SECRET="${{ secrets.ADMIN_JWT_SECRET }}"
           ENV APP_KEYS="${{ secrets.APP_KEYS }}"
           ENV API_TOKEN_SALT="${{ secrets.API_TOKEN_SALT }}"
           ENV TRANSFER_TOKEN_SALT="${{ secrets.TRANSFER_TOKEN_SALT }}"
-
+    
           RUN npm run build
           EXPOSE 1337
           CMD ["npm", "run", "start"]
