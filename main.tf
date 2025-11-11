@@ -93,7 +93,7 @@ module "app_service" {
   plan_sku    = var.azure_app_service_plan_sku
   repo_url    = var.strapi_repo
   repo_branch = var.strapi_branch
-  repo_subdir = var.strapi_repo_subdir
+  #repo_subdir = var.strapi_repo_subdir
 
   github_token = var.github_token
 }
