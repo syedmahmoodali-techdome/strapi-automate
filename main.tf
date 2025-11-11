@@ -94,4 +94,23 @@ module "app_service" {
   repo_subdir = var.strapi_repo_subdir
 }
 
+resource "random_password" "app_keys" {
+  length  = 32
+  special = false
+}
+
+resource "random_password" "api_token_salt" {
+  length  = 32
+  special = false
+}
+
+resource "random_password" "admin_jwt_secret" {
+  length  = 32
+  special = false
+}
+
+resource "random_password" "transfer_token_salt" {
+  length  = 32
+  special = false
+}
 
