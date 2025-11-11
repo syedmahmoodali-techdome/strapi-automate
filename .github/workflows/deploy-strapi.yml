@@ -1,4 +1,4 @@
-name: Deploy Open Source Strapi (Docker + Terraform)
+name: Deploy Open Source Strapi CMS (Docker + Terraform)
 
 on:
   workflow_dispatch:
@@ -20,194 +20,161 @@ jobs:
       db_password: ${{ steps.tfout.outputs.db_password }}
 
     steps:
+      # 1️⃣ Checkout infra repo
       - name: Checkout infra repo
         uses: actions/checkout@v4
 
+      # 2️⃣ Install jq
       - name: Install jq
         run: sudo apt-get update -y && sudo apt-get install -y jq
 
-      - name: Generate terraform.tfvars.json (full)
-        # Parse ALL fields from clinic-config.json into terraform.tfvars.json
+      # 3️⃣ Generate terraform.tfvars.json from clinic-config.json
+      - name: Generate terraform.tfvars.json
         run: |
           jq '{
             clinic_name: .clinic.name,
             clinic_environment: .clinic.environment,
             clinic_region: .clinic.region,
-            # Strapi repo + admin creds
             strapi_repo: .strapi.repo,
             strapi_branch: .strapi.branch,
             strapi_repo_subdir: .strapi.repo_subdir,
             strapi_admin_email: .strapi.admin_email,
             strapi_admin_password: .strapi.admin_password,
-            # Database
             db_name: .database.name,
             db_username: .database.username,
             db_password: .database.password,
-            # Azure settings
             azure_resource_group_prefix: .azure.resource_group_prefix,
             azure_app_service_plan_sku: .azure.app_service_plan_sku,
-            # Integration + backend
             linked_storefront_url: .integration.linked_storefront_url,
             backend_url: .integration.backend_url,
-            # Branding (optional)
             brand_primary_color: .clinic.branding.primary_color,
             brand_secondary_color: .clinic.branding.secondary_color,
             brand_logo_url: .clinic.branding.logo_url,
             brand_favicon_url: .clinic.branding.favicon_url
           }' clinic-config.json > terraform.tfvars.json
 
-      - name: Print generated tfvars (debug)
-        run: |
-          echo "---- terraform.tfvars.json ----"
-          cat terraform.tfvars.json
-          echo "-------------------------------"
-
+      # 4️⃣ Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+      # 5️⃣ Terraform Init & Apply
       - name: Terraform Init & Apply
         env:
           ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
           ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
-          terraform init -input=false
-          terraform apply -auto-approve -input=false -var-file="terraform.tfvars.json"
+          terraform init 
+          terraform apply -auto-approve -var-file="terraform.tfvars.json" -var="github_token=$GH_PAT"
 
+      # 6️⃣ Capture Terraform Outputs
       - name: Capture Terraform Outputs
         id: tfout
         run: |
-          # App Service & ACR
           echo "app_service_name=$(terraform output -raw app_service_name)" >> $GITHUB_OUTPUT
           echo "resource_group_name=$(terraform output -raw resource_group_name)" >> $GITHUB_OUTPUT
           echo "acr_name=$(terraform output -raw acr_name)" >> $GITHUB_OUTPUT
           echo "acr_login_server=$(terraform output -raw acr_login_server)" >> $GITHUB_OUTPUT
 
-          # Database outputs (must match your module outputs)
-          # db_host is the FQDN of the postgres server
-          echo "db_host=$(terraform output -raw db_fqdn)" >> $GITHUB_OUTPUT || true
-          # fallback if your output name differs
-          if [ -z "${{ steps.tfout.outputs.db_host }}" ]; then
-            # Try alternate output names from modules
-            echo "db_host=$(terraform output -raw database_db_fqdn 2>/dev/null || true)" >> $GITHUB_OUTPUT || true
-          fi
-
-          # individual DB pieces (ensure your module provides these outputs)
-          echo "db_name=$(terraform output -raw db_name 2>/dev/null || true)" >> $GITHUB_OUTPUT
-          echo "db_user=$(terraform output -raw db_username 2>/dev/null || true)" >> $GITHUB_OUTPUT
-          # db_password might be sensitive; still capture for runner use
-          echo "db_password=$(terraform output -raw db_password 2>/dev/null || true)" >> $GITHUB_OUTPUT
+          echo "db_host=$(terraform output -raw db_host)" >> $GITHUB_OUTPUT
           echo "db_port=5432" >> $GITHUB_OUTPUT
+          echo "db_name=$(terraform output -raw db_name)" >> $GITHUB_OUTPUT
+          echo "db_user=$(terraform output -raw db_user)" >> $GITHUB_OUTPUT
+          echo "db_password=$(terraform output -raw db_password)" >> $GITHUB_OUTPUT
 
   deploy:
     needs: terraform
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout open-source Strapi
+      # 1️⃣ Checkout open-source Strapi
+      - name: Checkout Strapi source
         uses: actions/checkout@v4
         with:
           repository: strapi/strapi
+          ref: main
           path: strapi
 
-      - name: Build Docker image (official Strapi)
+      # 2️⃣ Build Docker image
+      - name: Build Docker image
         working-directory: strapi
-        env:
-          DB_HOST: ${{ needs.terraform.outputs.db_host }}
-          DB_PORT: ${{ needs.terraform.outputs.db_port }}
-          DB_NAME: ${{ needs.terraform.outputs.db_name }}
-          DB_USER: ${{ needs.terraform.outputs.db_user }}
-          DB_PASS: ${{ needs.terraform.outputs.db_password }}
         run: |
-          cat <<'DOCKERFILE' > Dockerfile
+          cat <<EOF > Dockerfile
           FROM node:20-alpine
           RUN apk add --no-cache bash python3 make g++ libc-dev postgresql-dev
-          WORKDIR /app
+          WORKDIR /usr/src/app
 
-          # install node deps
-          COPY package*.json ./
-          RUN npm ci --silent
-
-          # copy source
+          COPY package.json package-lock.json ./ 
+          RUN npm ci
           COPY . .
 
-          # default env (production)
-          ENV NODE_ENV=production
-          # Strapi expects DB vars set at runtime/in container
+          # ✅ Strapi database config
           ENV DATABASE_CLIENT=postgres
+          ENV DATABASE_HOST="${{ needs.terraform.outputs.db_host }}"
+          ENV DATABASE_PORT="${{ needs.terraform.outputs.db_port }}"
+          ENV DATABASE_NAME="${{ needs.terraform.outputs.db_name }}"
+          ENV DATABASE_USERNAME="${{ needs.terraform.outputs.db_user }}"
+          ENV DATABASE_PASSWORD="${{ needs.terraform.outputs.db_password }}"
 
-          # The pipeline will write the actual DB envs during build above via shell interpolation
+          # ✅ Secrets required for production
+          ENV ADMIN_JWT_SECRET="${{ secrets.ADMIN_JWT_SECRET }}"
+          ENV APP_KEYS="${{ secrets.APP_KEYS }}"
+          ENV API_TOKEN_SALT="${{ secrets.API_TOKEN_SALT }}"
+          ENV TRANSFER_TOKEN_SALT="${{ secrets.TRANSFER_TOKEN_SALT }}"
+
           RUN npm run build
           EXPOSE 1337
           CMD ["npm", "run", "start"]
-          DOCKERFILE
+          EOF
 
-          # Build the image (we will set DB envs at runtime in App Service; building without secrets is fine)
           docker build -t strapi-temp:latest .
 
+      # 3️⃣ Login to Azure
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           auth-type: SERVICE_PRINCIPAL
 
+      # 4️⃣ ACR Login
       - name: ACR Login
         run: az acr login --name ${{ needs.terraform.outputs.acr_name }}
 
-      - name: Tag & Push image to ACR
+      # 5️⃣ Push image to ACR
+      - name: Push image to ACR
         run: |
           ACR_SERVER=${{ needs.terraform.outputs.acr_login_server }}
           IMAGE_NAME=strapi-open:latest
           docker tag strapi-temp:latest $ACR_SERVER/$IMAGE_NAME
           docker push $ACR_SERVER/$IMAGE_NAME
 
-      - name: Configure App Service container + App settings (DB & Strapi secrets)
+      # 6️⃣ Update App Service to pull image from ACR
+      - name: Update App Service container settings
         run: |
-          # get registry credentials
           REGISTRY_USER=$(az acr credential show --name ${{ needs.terraform.outputs.acr_name }} --query username -o tsv)
           REGISTRY_PASS=$(az acr credential show --name ${{ needs.terraform.outputs.acr_name }} --query passwords[0].value -o tsv)
 
-          # set container and registry credentials
           az webapp config container set \
             --name "${{ needs.terraform.outputs.app_service_name }}" \
             --resource-group "${{ needs.terraform.outputs.resource_group_name }}" \
             --container-image-name "${{ needs.terraform.outputs.acr_login_server }}/strapi-open:latest" \
             --container-registry-url "https://${{ needs.terraform.outputs.acr_login_server }}" \
-            --container-registry-username "$REGISTRY_USER" \
+            --container-registry-user "$REGISTRY_USER" \
             --container-registry-password "$REGISTRY_PASS"
 
-          # set application settings (environment variables) for Strapi to use the Azure Postgres
-          az webapp config appsettings set \
-            --name "${{ needs.terraform.outputs.app_service_name }}" \
-            --resource-group "${{ needs.terraform.outputs.resource_group_name }}" \
-            --settings \
-              DATABASE_CLIENT=postgres \
-              DATABASE_HOST="${{ needs.terraform.outputs.db_host }}" \
-              DATABASE_PORT="${{ needs.terraform.outputs.db_port }}" \
-              DATABASE_NAME="${{ needs.terraform.outputs.db_name }}" \
-              DATABASE_USERNAME="${{ needs.terraform.outputs.db_user }}" \
-              DATABASE_PASSWORD="${{ needs.terraform.outputs.db_password }}" \
-              NODE_ENV=production \
-              # Strapi required secrets (must exist in repo secrets)
-              ADMIN_JWT_SECRET="${{ secrets.ADMIN_JWT_SECRET }}" \
-              APP_KEYS="${{ secrets.APP_KEYS }}" \
-              API_TOKEN_SALT="${{ secrets.API_TOKEN_SALT }}" \
-              TRANSFER_TOKEN_SALT="${{ secrets.TRANSFER_TOKEN_SALT }}"
-
-          # restart the webapp so it pulls the newly pushed image
-          az webapp restart --name "${{ needs.terraform.outputs.app_service_name }}" --resource-group "${{ needs.terraform.outputs.resource_group_name }}"
-
-      - name: Verify Strapi app (longer wait)
+      # 7️⃣ Verify Strapi is live
+      - name: Verify Strapi app
         run: |
-          echo "Waiting for Strapi to start (this may take several minutes)..."
-          for i in {1..20}; do
+          echo "Waiting for Strapi to start..."
+          for i in {1..10}; do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://${{ needs.terraform.outputs.app_service_name }}.azurewebsites.net/admin || true)
             if [ "$STATUS" = "200" ]; then
               echo "✅ Strapi is live!"
               exit 0
             fi
-            echo "Waiting... ($i/20)"
+            echo "Waiting... ($i/10)"
             sleep 15
           done
           echo "❌ Strapi did not start in time."
