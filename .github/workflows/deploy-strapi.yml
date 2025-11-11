@@ -208,9 +208,9 @@ jobs:
 
           az webapp config appsettings set --name "$APP" --resource-group "$RG" --settings $SETTINGS_JSON
 
-      - name: Restart App Service
-        run: |
-          az webapp restart --name "${{ needs.terraform.outputs.app_service_name }}" --resource-group "${{ needs.terraform.outputs.resource_group_name }}"
+      # - name: Restart App Service
+      #   run: |
+      #     az webapp restart --name "${{ needs.terraform.outputs.app_service_name }}" --resource-group "${{ needs.terraform.outputs.resource_group_name }}"
 
       - name: Wait for Strapi /admin to be available
         run: |
