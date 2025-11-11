@@ -105,8 +105,8 @@ jobs:
           FROM node:20-alpine
           RUN apk add --no-cache bash python3 make g++ libc-dev postgresql-dev
           WORKDIR /app
-          COPY package*.json ./
-          RUN npm ci
+          COPY package.json yarn.lock ./
+          RUN yarn install --frozen-lockfile
           COPY . .
     
           ENV NODE_ENV=production
