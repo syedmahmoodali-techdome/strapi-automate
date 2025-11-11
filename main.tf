@@ -79,6 +79,8 @@ module "app_service" {
   api_token_salt      = random_password.api_token_salt.result
   admin_jwt_secret    = random_password.admin_jwt_secret.result
   transfer_token_salt = random_password.transfer_token_salt.result
+  jwt_secret = random_password.jwt_secret.result
+
 
   # optional integrations & branding
   linked_storefront_url = var.linked_storefront_url
