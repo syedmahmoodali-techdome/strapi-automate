@@ -9,7 +9,7 @@
       "logo_url": "https://cdn.example.com/ali-logo.png",
       "favicon_url": "https://cdn.example.com/ali-favicon.ico"
     }
-  }, 
+  },
   "strapi": {
     "repo": "https://github.com/strapi/strapi.git",
     "branch": "main",
