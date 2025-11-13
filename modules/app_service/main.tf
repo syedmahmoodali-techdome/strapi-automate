@@ -42,6 +42,8 @@ resource "azurerm_linux_web_app" "app_service" {
     # i added these two to fix the error: Cannot send secure cookie over unencrypted connection
     TRUST_PROXY                 = "true"
     ADMIN_FORCE_SECURE_COOKIES  = "false"
+    NODE_ENV                        = "production"
+    PUBLIC_APP_URL                     = "https://${module.app_service.cms_url}"
 
     # Strapi admin
     STRAPI_ADMIN_EMAIL    = var.strapi_admin_email
