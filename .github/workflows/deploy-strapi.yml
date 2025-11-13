@@ -126,7 +126,7 @@ jobs:
       # im adding this so that i can replace server.tf
       - name: Override Strapi server.ts dynamically
         run: |
-          mkdir -p ecommpoc/my-strapi-project/config
+          # mkdir -p ecommpoc/my-strapi-project/config
           cat <<'EOF' > ecommpoc/my-strapi-project/config/server.ts
           export default ({ env }) => ({
             host: env('HOST', '0.0.0.0'),
