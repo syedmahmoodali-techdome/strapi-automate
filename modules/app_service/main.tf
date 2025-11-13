@@ -43,7 +43,7 @@ resource "azurerm_linux_web_app" "app_service" {
     TRUST_PROXY                 = "true"
     ADMIN_FORCE_SECURE_COOKIES  = "false"
     NODE_ENV                        = "production"
-    PUBLIC_APP_URL                     = "https://${module.app_service.cms_url}"
+    PUBLIC_APP_URL = "https://${azurerm_linux_web_app.app_service.default_hostname}"
 
     # Strapi admin
     STRAPI_ADMIN_EMAIL    = var.strapi_admin_email
