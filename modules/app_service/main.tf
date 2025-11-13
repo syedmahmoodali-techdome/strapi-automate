@@ -39,9 +39,14 @@ resource "azurerm_linux_web_app" "app_service" {
     DATABASE_USERNAME    = var.db_user
     DATABASE_PASSWORD    = var.db_password
 
+    # i added these two to fix the error: Cannot send secure cookie over unencrypted connection
+    TRUST_PROXY                 = "true"
+    ADMIN_FORCE_SECURE_COOKIES  = "false"
+
     # Strapi admin
     STRAPI_ADMIN_EMAIL    = var.strapi_admin_email
     STRAPI_ADMIN_PASSWORD = var.strapi_admin_password
+    
 
     # Strapi secrets
     APP_KEYS             = var.app_keys
