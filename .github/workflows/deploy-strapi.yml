@@ -223,6 +223,8 @@ jobs:
             "ADMIN_JWT_SECRET=${{ secrets.ADMIN_JWT_SECRET }}"
             "APP_KEYS=${{ secrets.APP_KEYS }}"
             "API_TOKEN_SALT=${{ secrets.API_TOKEN_SALT }}"
+            #i added this:
+            "PUBLIC_APP_URL = https://${azurerm_linux_web_app.app_service.default_hostname}"
           )
 
           SETTINGS_JSON=""
