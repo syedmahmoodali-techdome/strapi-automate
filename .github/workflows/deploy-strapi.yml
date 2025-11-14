@@ -229,7 +229,7 @@ jobs:
             #i added this:
             "TRUST_PROXY=true"
             "ADMIN_FORCE_SECURE_COOKIES=false"
-            # "PUBLIC_APP_URL=https://${CMS_URL}"
+            "PUBLIC_APP_URL=https://${CMS_URL}"
           )
 
           SETTINGS_JSON=""
