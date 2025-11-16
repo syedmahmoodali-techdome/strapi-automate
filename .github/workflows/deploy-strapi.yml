@@ -131,22 +131,31 @@ jobs:
           export default ({ env }) => ({
             host: env('HOST', '0.0.0.0'),
             port: env.int('PORT', 1337),
+
+            // Required for Azure / reverse proxies
             proxy: true,
-            url: env('https://ali-clinic-app.azurewebsites.net'),   
+
+            // Must remain dynamic, provided by Terraform or App Service env
+            url: env('PUBLIC_APP_URL'),
+
             app: {
               keys: env.array('APP_KEYS'),
             },
+
             admin: {
               auth: {
+                // Uses GitHub Actions secret
                 secret: env('ADMIN_JWT_SECRET'),
               },
               cookie: {
-                secure: env.bool('ADMIN_FORCE_SECURE_COOKIES', false),
+                secure: true, // secure cookie fix from the article
               },
             },
           });
           EOF
+
           echo "✅ server.ts overridden successfully in ecommpoc/my-strapi-project/config"
+
 
 
 
