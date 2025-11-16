@@ -136,7 +136,7 @@ jobs:
             proxy: true,
 
             // Must remain dynamic, provided by Terraform or App Service env
-            url: env('PUBLIC_APP_URL'),
+            url: env('https://ali-clinic-app.azurewebsites.net'),
 
             app: {
               keys: env.array('APP_KEYS'),
