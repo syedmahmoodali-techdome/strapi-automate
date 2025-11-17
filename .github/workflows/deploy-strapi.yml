@@ -164,10 +164,7 @@ jobs:
           echo "HASHED_PASSWORD=$HASH" >> $GITHUB_ENV
           echo "✅ Password hashed using bcryptjs (correct for Strapi v5)"
 
-
-
-
-      - name: Insert/update Strapi admin user in Postgres
+      - name: Insert Strapi admin user (correct Strapi v5 tables)
         env:
           DB_HOST: ${{ needs.terraform.outputs.db_host }}
           DB_PORT: ${{ needs.terraform.outputs.db_port }}
@@ -181,19 +178,63 @@ jobs:
         run: |
           export PGPASSWORD="$DB_PASS"
 
+          echo "🔧 Creating/Updating Strapi admin user…"
+
           psql "host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER sslmode=require" <<SQL
-          INSERT INTO public.strapi_admin_users
-          (id, email, password, firstname, lastname, is_active, blocked, created_at, updated_at)
-          VALUES
-          (gen_random_uuid(), '${ADMIN_EMAIL}', '${HASHED_PASSWORD}', '${ADMIN_FIRST}', '${ADMIN_LAST}', TRUE, FALSE, NOW(), NOW())
-          ON CONFLICT (email) DO UPDATE
-            SET password = EXCLUDED.password,
-                firstname = EXCLUDED.firstname,
-                lastname = EXCLUDED.lastname,
-                updated_at = NOW();
+
+          -- Ensure admin exists in correct table
+          INSERT INTO strapi_admin_users (
+              email,
+              password,
+              firstname,
+              lastname,
+              is_active,
+              blocked,
+              created_at,
+              updated_at,
+              published_at,
+              document_id
+          ) VALUES (
+              '${ADMIN_EMAIL}',
+              '${HASHED_PASSWORD}',
+              '${ADMIN_FIRST}',
+              '${ADMIN_LAST}',
+              TRUE,
+              FALSE,
+              NOW(),
+              NOW(),
+              NOW(),
+              'doc_' || floor(random()*100000000)::text
+          )
+          ON CONFLICT (email)
+          DO UPDATE SET
+              password = EXCLUDED.password,
+              firstname = EXCLUDED.firstname,
+              lastname = EXCLUDED.lastname,
+              updated_at = NOW();
+
+          -- Link admin to the super admin role (role_id = 1)
+          INSERT INTO strapi_admin_users_roles_links (
+              user_id,
+              role_id,
+              role_order,
+              user_order
+          )
+          VALUES (
+              (SELECT id FROM strapi_admin_users WHERE email='${ADMIN_EMAIL}'),
+              1,
+              1,
+              1
+          )
+          ON CONFLICT DO NOTHING;
+
+          -- Clear stale login tokens
+          DELETE FROM core_admin_auth;
+
           SQL
 
-          echo "✅ Strapi v5 admin user inserted/updated: ${ADMIN_EMAIL}"
+          echo "✅ Strapi admin user created/updated successfully: ${ADMIN_EMAIL}"
+
 
 
 
