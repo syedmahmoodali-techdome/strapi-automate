@@ -15,7 +15,7 @@
     "branch": "main",
     "repo_subdir": "my-strapi-project",
     "admin_email": "admin@aliclinic.com",
-    "admin_password": "StrongPass123!"
+    "admin_password": "StrongPass123!",
     "admin_firstname": "Ali",
     "admin_lastname": "Clinic"
   },
