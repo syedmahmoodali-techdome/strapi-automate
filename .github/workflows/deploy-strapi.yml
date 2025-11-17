@@ -125,32 +125,23 @@ jobs:
 
 
       #before this everything is fine, admin is getting created manually and not this is to auto create admin
-      # Determine admin credentials (from clinic-config.json if present, otherwise from secrets)
-      - name: Determine Strapi admin creds
-        id: admin-creds
+      - name: Parse Strapi admin creds from clinic-config.json
         run: |
-          # try to find clinic-config.json in repo root (infra). If not present, use secrets
-          if [ -f clinic-config.json ]; then
-            ADMIN_EMAIL=$(jq -r '.strapi.admin_email // .strapi.admin_email' clinic-config.json)
-            ADMIN_PW=$(jq -r '.strapi.admin_password' clinic-config.json)
-          elif [ -f ecommpoc/clinic-config.json ]; then
-            ADMIN_EMAIL=$(jq -r '.strapi.admin_email // .strapi.admin_email' ecommpoc/clinic-config.json)
-            ADMIN_PW=$(jq -r '.strapi.admin_password' ecommpoc/clinic-config.json)
-          else
-            # fallback to GH secrets (must be configured if clinic-config.json not available)
-            ADMIN_EMAIL="${{ secrets.STRAPI_ADMIN_EMAIL }}"
-            ADMIN_PW="${{ secrets.STRAPI_ADMIN_PASSWORD }}"
-          fi
+          echo "Parsing clinic-config.json for admin creds"
+
+          ADMIN_EMAIL=$(jq -r '.strapi.admin_email' clinic-config.json)
+          ADMIN_PW=$(jq -r '.strapi.admin_password' clinic-config.json)
 
           if [ -z "$ADMIN_EMAIL" ] || [ -z "$ADMIN_PW" ]; then
-            echo "ERROR: Admin email or password not found (clinic-config.json or secrets missing)"
+            echo "ERROR: Missing admin creds in clinic-config.json"
             exit 1
           fi
 
           echo "ADMIN_EMAIL=$ADMIN_EMAIL" >> $GITHUB_ENV
-          # do not print the password
           echo "ADMIN_PW=$ADMIN_PW" >> $GITHUB_ENV
-          echo "✅ Admin creds determined"
+
+          echo "Loaded admin creds from clinic-config.json"
+
 
       - name: Hash admin password (bcrypt)
         run: |
