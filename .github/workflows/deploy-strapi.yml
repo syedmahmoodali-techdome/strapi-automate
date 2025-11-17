@@ -112,6 +112,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
+
+      - name: Checkout infra repo (this repo)
+        uses: actions/checkout@v4
+      
       - name: Checkout runner (not Terraform code) - minimal
         run: echo "deploy job started"
 
