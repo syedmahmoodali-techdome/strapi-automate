@@ -123,6 +123,81 @@ jobs:
       - name: Show repo layout (debug)
         run: ls -la ecommpoc || true
 
+
+      #before this everything is fine, admin is getting created manually and not this is to auto create admin
+      # Determine admin credentials (from clinic-config.json if present, otherwise from secrets)
+      - name: Determine Strapi admin creds
+        id: admin-creds
+        run: |
+          # try to find clinic-config.json in repo root (infra). If not present, use secrets
+          if [ -f clinic-config.json ]; then
+            ADMIN_EMAIL=$(jq -r '.strapi.admin_email // .strapi.admin_email' clinic-config.json)
+            ADMIN_PW=$(jq -r '.strapi.admin_password' clinic-config.json)
+          elif [ -f ecommpoc/clinic-config.json ]; then
+            ADMIN_EMAIL=$(jq -r '.strapi.admin_email // .strapi.admin_email' ecommpoc/clinic-config.json)
+            ADMIN_PW=$(jq -r '.strapi.admin_password' ecommpoc/clinic-config.json)
+          else
+            # fallback to GH secrets (must be configured if clinic-config.json not available)
+            ADMIN_EMAIL="${{ secrets.STRAPI_ADMIN_EMAIL }}"
+            ADMIN_PW="${{ secrets.STRAPI_ADMIN_PASSWORD }}"
+          fi
+
+          if [ -z "$ADMIN_EMAIL" ] || [ -z "$ADMIN_PW" ]; then
+            echo "ERROR: Admin email or password not found (clinic-config.json or secrets missing)"
+            exit 1
+          fi
+
+          echo "ADMIN_EMAIL=$ADMIN_EMAIL" >> $GITHUB_ENV
+          # do not print the password
+          echo "ADMIN_PW=$ADMIN_PW" >> $GITHUB_ENV
+          echo "✅ Admin creds determined"
+
+      - name: Hash admin password (bcrypt)
+        run: |
+          TMPDIR=$(mktemp -d)
+          pushd $TMPDIR
+          npm init -y >/dev/null 2>&1
+          npm install bcryptjs >/dev/null 2>&1
+          # create bcrypt hash using bcryptjs (synchronous)
+          HASH=$(node -e "console.log(require('bcryptjs').hashSync(process.env.ADMIN_PW, 10))")
+          echo "HASHED_PASSWORD=$HASH" >> $GITHUB_ENV
+          popd
+          rm -rf $TMPDIR
+          echo "✅ Password hashed"
+
+      - name: Insert/update Strapi admin user in Postgres
+        env:
+          DB_HOST: ${{ needs.terraform.outputs.db_host }}
+          DB_PORT: ${{ needs.terraform.outputs.db_port }}
+          DB_NAME: ${{ needs.terraform.outputs.db_name }}
+          DB_USER: ${{ needs.terraform.outputs.db_user }}
+          DB_PASS: ${{ needs.terraform.outputs.db_password }}
+          ADMIN_EMAIL: ${{ env.ADMIN_EMAIL }}
+          HASHED_PASSWORD: ${{ env.HASHED_PASSWORD }}
+        run: |
+          # sanity check
+          echo "DB host: $DB_HOST, DB name: $DB_NAME, DB user: $DB_USER"
+          # use PGPASSWORD to avoid interactive prompt
+          export PGPASSWORD="$DB_PASS"
+
+          # Ensure psql is available (ubuntu runner has it by default); check connection
+          psql "host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER sslmode=require" -c '\conninfo' || (echo "Cannot connect to Postgres" && exit 1)
+
+          # Insert or update admin user. ON CONFLICT updates password and flags.
+          psql "host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER sslmode=require" <<'SQL'
+          BEGIN;
+          INSERT INTO public.admin_users (email, password, "is_active", blocked, created_at)
+          VALUES ('''${ADMIN_EMAIL}''', '''${HASHED_PASSWORD}''', TRUE, FALSE, now())
+          ON CONFLICT (email) DO UPDATE
+            SET password = EXCLUDED.password,
+                "is_active" = EXCLUDED."is_active",
+                blocked = EXCLUDED.blocked;
+          COMMIT;
+          SQL
+
+          echo "✅ Admin user inserted/updated for ${ADMIN_EMAIL}"
+
+
       # im adding this so that i can replace server.tf
       - name: Override Strapi server.ts dynamically
         run: |
