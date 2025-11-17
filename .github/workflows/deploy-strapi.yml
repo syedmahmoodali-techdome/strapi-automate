@@ -157,16 +157,10 @@ jobs:
 
       - name: Hash admin password (bcrypt)
         run: |
-          TMPDIR=$(mktemp -d)
-          pushd $TMPDIR
-          npm init -y >/dev/null 2>&1
-          npm install bcryptjs >/dev/null 2>&1
-          # create bcrypt hash using bcryptjs (synchronous)
-          HASH=$(node -e "console.log(require('bcryptjs').hashSync(process.env.ADMIN_PW, 10))")
+          HASH=$(htpasswd -bnBC 10 "" "$ADMIN_PW" | tr -d ':\n')
           echo "HASHED_PASSWORD=$HASH" >> $GITHUB_ENV
-          popd
-          rm -rf $TMPDIR
-          echo "✅ Password hashed"
+          echo "✅ Password hashed (bcrypt)"
+
 
       - name: Insert/update Strapi admin user in Postgres
         env:
@@ -183,19 +177,19 @@ jobs:
           export PGPASSWORD="$DB_PASS"
 
           psql "host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER sslmode=require" <<SQL
-          BEGIN;
-          INSERT INTO public.admin_users (email, password, firstname, lastname, is_active, blocked, created_at)
-          VALUES ('${ADMIN_EMAIL}', '${HASHED_PASSWORD}', '${ADMIN_FIRST}', '${ADMIN_LAST}', TRUE, FALSE, now())
+          INSERT INTO public.admin_users
+          (id, document_id, email, password, firstname, lastname, is_active, blocked, created_at, updated_at)
+          VALUES
+          (gen_random_uuid(), gen_random_uuid(), '${ADMIN_EMAIL}', '${HASHED_PASSWORD}', '${ADMIN_FIRST}', '${ADMIN_LAST}', TRUE, FALSE, NOW(), NOW())
           ON CONFLICT (email) DO UPDATE
             SET password = EXCLUDED.password,
                 firstname = EXCLUDED.firstname,
                 lastname = EXCLUDED.lastname,
-                is_active = EXCLUDED.is_active,
-                blocked = EXCLUDED.blocked;
-          COMMIT;
+                updated_at = NOW();
           SQL
 
-          echo "✅ Admin user inserted/updated for ${ADMIN_EMAIL} (${ADMIN_FIRST} ${ADMIN_LAST})"
+          echo "✅ Admin user inserted/updated for ${ADMIN_EMAIL}"
+
 
 
 
