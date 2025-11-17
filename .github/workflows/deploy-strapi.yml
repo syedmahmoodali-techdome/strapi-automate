@@ -127,20 +127,25 @@ jobs:
       #before this everything is fine, admin is getting created manually and not this is to auto create admin
       - name: Parse Strapi admin creds from clinic-config.json
         run: |
-          echo "Parsing clinic-config.json for admin creds"
+          echo "🔥 Parsing clinic-config.json for admin creds"
 
           ADMIN_EMAIL=$(jq -r '.strapi.admin_email' clinic-config.json)
           ADMIN_PW=$(jq -r '.strapi.admin_password' clinic-config.json)
+          ADMIN_FIRST=$(jq -r '.strapi.admin_firstname // "Admin"' clinic-config.json)
+          ADMIN_LAST=$(jq -r '.strapi.admin_lastname // "User"' clinic-config.json)
 
           if [ -z "$ADMIN_EMAIL" ] || [ -z "$ADMIN_PW" ]; then
-            echo "ERROR: Missing admin creds in clinic-config.json"
+            echo "❌ ERROR: Missing admin email/password in clinic-config.json"
             exit 1
           fi
 
           echo "ADMIN_EMAIL=$ADMIN_EMAIL" >> $GITHUB_ENV
           echo "ADMIN_PW=$ADMIN_PW" >> $GITHUB_ENV
+          echo "ADMIN_FIRST=$ADMIN_FIRST" >> $GITHUB_ENV
+          echo "ADMIN_LAST=$ADMIN_LAST" >> $GITHUB_ENV
 
-          echo "Loaded admin creds from clinic-config.json"
+          echo "✅ Loaded admin creds + firstname/lastname"
+
 
 
       - name: Hash admin password (bcrypt)
@@ -165,28 +170,26 @@ jobs:
           DB_PASS: ${{ needs.terraform.outputs.db_password }}
           ADMIN_EMAIL: ${{ env.ADMIN_EMAIL }}
           HASHED_PASSWORD: ${{ env.HASHED_PASSWORD }}
+          ADMIN_FIRST: ${{ env.ADMIN_FIRST }}
+          ADMIN_LAST: ${{ env.ADMIN_LAST }}
         run: |
-          # sanity check
-          echo "DB host: $DB_HOST, DB name: $DB_NAME, DB user: $DB_USER"
-          # use PGPASSWORD to avoid interactive prompt
           export PGPASSWORD="$DB_PASS"
 
-          # Ensure psql is available (ubuntu runner has it by default); check connection
-          psql "host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER sslmode=require" -c '\conninfo' || (echo "Cannot connect to Postgres" && exit 1)
-
-          # Insert or update admin user. ON CONFLICT updates password and flags.
-          psql "host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER sslmode=require" <<'SQL'
+          psql "host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER sslmode=require" <<SQL
           BEGIN;
-          INSERT INTO public.admin_users (email, password, "is_active", blocked, created_at)
-          VALUES ('''${ADMIN_EMAIL}''', '''${HASHED_PASSWORD}''', TRUE, FALSE, now())
+          INSERT INTO public.admin_users (email, password, firstname, lastname, is_active, blocked, created_at)
+          VALUES ('${ADMIN_EMAIL}', '${HASHED_PASSWORD}', '${ADMIN_FIRST}', '${ADMIN_LAST}', TRUE, FALSE, now())
           ON CONFLICT (email) DO UPDATE
             SET password = EXCLUDED.password,
-                "is_active" = EXCLUDED."is_active",
+                firstname = EXCLUDED.firstname,
+                lastname = EXCLUDED.lastname,
+                is_active = EXCLUDED.is_active,
                 blocked = EXCLUDED.blocked;
           COMMIT;
           SQL
 
-          echo "✅ Admin user inserted/updated for ${ADMIN_EMAIL}"
+          echo "✅ Admin user inserted/updated for ${ADMIN_EMAIL} (${ADMIN_FIRST} ${ADMIN_LAST})"
+
 
 
       # im adding this so that i can replace server.tf
