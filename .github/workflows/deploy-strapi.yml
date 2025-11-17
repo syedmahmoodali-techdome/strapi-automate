@@ -148,13 +148,37 @@ jobs:
                 secret: env('ADMIN_JWT_SECRET'),
               },
               cookie: {
-                secure: true, // secure cookie fix from the article
+                secure: false, // secure cookie fix from the article
               },
             },
           });
           EOF
 
           echo "✅ server.ts overridden successfully in ecommpoc/my-strapi-project/config"
+
+
+
+      - name: Add Strapi middleware fix for secure cookies
+        run: |
+          mkdir -p ecommpoc/my-strapi-project/src
+          cat <<'EOF' > ecommpoc/my-strapi-project/src/index.ts
+          export default {
+            register({ strapi }) {
+              // Fix HTTPS cookie issue behind Azure App Service / proxies
+              strapi.server.use(async (ctx, next) => {
+                if (ctx.req?.socket) {
+                  (ctx.req.socket as any).encrypted = true;
+                }  
+                await next();
+              });
+            },
+
+            bootstrap() {},
+          };
+          EOF
+
+          echo  "✅ index.ts middleware injected successfully"
+
 
 
 
