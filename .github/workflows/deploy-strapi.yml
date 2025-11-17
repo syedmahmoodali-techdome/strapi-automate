@@ -155,11 +155,14 @@ jobs:
 
 
 
-      - name: Hash admin password (bcrypt)
+      - name: Hash admin password (Strapi v5 bcrypt)
         run: |
-          HASH=$(htpasswd -bnBC 10 "" "$ADMIN_PW" | tr -d ':\n')
+          npm install -g bcryptjs
+          HASH=$(node -e "console.log(require('bcryptjs').hashSync(process.env.ADMIN_PW, 10))")
           echo "HASHED_PASSWORD=$HASH" >> $GITHUB_ENV
-          echo "✅ Password hashed (bcrypt)"
+          echo "✅ Password hashed using bcryptjs (correct for Strapi v5)"
+
+
 
 
       - name: Insert/update Strapi admin user in Postgres
@@ -177,10 +180,10 @@ jobs:
           export PGPASSWORD="$DB_PASS"
 
           psql "host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER sslmode=require" <<SQL
-          INSERT INTO public.admin_users
-          (id, document_id, email, password, firstname, lastname, is_active, blocked, created_at, updated_at)
+          INSERT INTO public.strapi_admin_users
+          (id, email, password, firstname, lastname, is_active, blocked, created_at, updated_at)
           VALUES
-          (gen_random_uuid(), gen_random_uuid(), '${ADMIN_EMAIL}', '${HASHED_PASSWORD}', '${ADMIN_FIRST}', '${ADMIN_LAST}', TRUE, FALSE, NOW(), NOW())
+          (gen_random_uuid(), '${ADMIN_EMAIL}', '${HASHED_PASSWORD}', '${ADMIN_FIRST}', '${ADMIN_LAST}', TRUE, FALSE, NOW(), NOW())
           ON CONFLICT (email) DO UPDATE
             SET password = EXCLUDED.password,
                 firstname = EXCLUDED.firstname,
@@ -188,7 +191,8 @@ jobs:
                 updated_at = NOW();
           SQL
 
-          echo "✅ Admin user inserted/updated for ${ADMIN_EMAIL}"
+          echo "✅ Strapi v5 admin user inserted/updated: ${ADMIN_EMAIL}"
+
 
 
 
@@ -206,7 +210,7 @@ jobs:
             proxy: true,
 
             // Must remain dynamic, provided by Terraform or App Service env
-            url: env('https://ali-clinic-app.azurewebsites.net'),
+            url: env('PUBLIC_APP_URL'),
 
             app: {
               keys: env.array('APP_KEYS'),
@@ -342,6 +346,8 @@ jobs:
             "TRUST_PROXY=true"
             "ADMIN_FORCE_SECURE_COOKIES=false"
             # "PUBLIC_APP_URL=https://${CMS_URL}"
+            "PUBLIC_APP_URL=https://${{ needs.terraform.outputs.cms_url }}"
+
           )
 
           SETTINGS_JSON=""
