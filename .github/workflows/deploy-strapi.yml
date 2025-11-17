@@ -153,6 +153,8 @@ jobs:
 
           echo "✅ Loaded admin creds + firstname/lastname"
 
+      - name: Install bcryptjs locally
+        run: npm install bcryptjs
 
 
       - name: Hash admin password (Strapi v5 bcrypt)
