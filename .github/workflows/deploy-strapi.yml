@@ -439,50 +439,30 @@ jobs:
           done
 
 
-      - name: Generate SQL script for Strapi admin creation
-        env:
-          ADMIN_EMAIL: ${{ env.ADMIN_EMAIL }}
-          HASHED_PASSWORD: ${{ env.HASHED_PASSWORD }}
-          ADMIN_FIRST: ${{ env.ADMIN_FIRST }}
-          ADMIN_LAST: ${{ env.ADMIN_LAST }}
+      - name: Generate SQL script safely
         run: |
-          echo "Creating SQL file create_admin.sql"
+          echo "🔥 Generating SQL (echo-safe version)..."
 
-          cat <<EOF > create_admin.sql
--- Insert or update admin user WITHOUT using DO blocks (Azure-safe)
+          echo "INSERT INTO admin_users (email, password, firstname, lastname, is_active, blocked, created_at, updated_at)" > create_admin.sql
+          echo "SELECT '${ADMIN_EMAIL}', '${HASHED_PASSWORD}', '${ADMIN_FIRST}', '${ADMIN_LAST}', TRUE, FALSE, NOW(), NOW()" >> create_admin.sql
+          echo "WHERE NOT EXISTS (SELECT 1 FROM admin_users WHERE email='${ADMIN_EMAIL}');" >> create_admin.sql
+          echo "" >> create_admin.sql
+          echo "UPDATE admin_users" >> create_admin.sql
+          echo "SET password='${HASHED_PASSWORD}'," >> create_admin.sql
+          echo "    firstname='${ADMIN_FIRST}'," >> create_admin.sql
+          echo "    lastname='${ADMIN_LAST}'," >> create_admin.sql
+          echo "    updated_at=NOW()" >> create_admin.sql
+          echo "WHERE email='${ADMIN_EMAIL}';" >> create_admin.sql
+          echo "" >> create_admin.sql
+          echo "INSERT INTO admin_users_roles_lnk (user_id, role_id)" >> create_admin.sql
+          echo "SELECT id, 1 FROM admin_users WHERE email='${ADMIN_EMAIL}'" >> create_admin.sql
+          echo "ON CONFLICT DO NOTHING;" >> create_admin.sql
+          echo "" >> create_admin.sql
+          echo "DELETE FROM core_admin_auth;" >> create_admin.sql
 
--- 1. Ensure user exists
-INSERT INTO admin_users (email, password, firstname, lastname, is_active, blocked, created_at, updated_at)
-SELECT
-  '${ADMIN_EMAIL}',
-  '${HASHED_PASSWORD}',
-  '${ADMIN_FIRST}',
-  '${ADMIN_LAST}',
-  TRUE,
-  FALSE,
-  NOW(),
-  NOW()
-WHERE NOT EXISTS (
-  SELECT 1 FROM admin_users WHERE email = '${ADMIN_EMAIL}'
-);
-
--- 2. Update user details always (idempotent)
-UPDATE admin_users
-SET
-  password='${HASHED_PASSWORD}',
-  firstname='${ADMIN_FIRST}',
-  lastname='${ADMIN_LAST}',
-  updated_at=NOW()
-WHERE email='${ADMIN_EMAIL}';
-
--- 3. Ensure role link exists
-INSERT INTO admin_users_roles_lnk (user_id, role_id)
-SELECT id, 1 FROM admin_users WHERE email='${ADMIN_EMAIL}'
-ON CONFLICT DO NOTHING;
-EOF
-
-          echo "SQL script created:"
+          echo "✅ create_admin.sql generated:"
           cat create_admin.sql
+
 
 
 
@@ -495,12 +475,13 @@ EOF
           DB_USER: ${{ needs.terraform.outputs.db_user }}
           DB_PASS: ${{ needs.terraform.outputs.db_password }}
         run: |
+          echo "🔧 Running SQL…"
           export PGPASSWORD="$DB_PASS"
 
-          echo "Running create_admin.sql..."
           psql "host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER password=$DB_PASS sslmode=require" -f create_admin.sql
 
           echo "✅ Admin user created/updated successfully."
+
 
 
       # i added this to create admin after strapi comes up
