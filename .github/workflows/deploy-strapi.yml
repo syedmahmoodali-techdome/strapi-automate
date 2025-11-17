@@ -453,7 +453,7 @@ jobs:
         run: |
           export PGPASSWORD="$DB_PASS"
 
-          psql "host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER password=$DB_PASS sslmode=require" <<'SQL'
+          psql "host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER password=$DB_PASS sslmode=require" <<SQL
           DO $$
           DECLARE
             existing_id INT;
