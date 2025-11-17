@@ -183,7 +183,7 @@ jobs:
           psql "host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER sslmode=require" <<SQL
 
           -- Ensure admin exists in correct table
-          INSERT INTO strapi_admin_users (
+          INSERT INTO admin_users (
               email,
               password,
               firstname,
@@ -191,9 +191,7 @@ jobs:
               is_active,
               blocked,
               created_at,
-              updated_at,
-              published_at,
-              document_id
+              updated_at
           ) VALUES (
               '${ADMIN_EMAIL}',
               '${HASHED_PASSWORD}',
@@ -202,9 +200,7 @@ jobs:
               TRUE,
               FALSE,
               NOW(),
-              NOW(),
-              NOW(),
-              'doc_' || floor(random()*100000000)::text
+              NOW()
           )
           ON CONFLICT (email)
           DO UPDATE SET
@@ -214,16 +210,12 @@ jobs:
               updated_at = NOW();
 
           -- Link admin to the super admin role (role_id = 1)
-          INSERT INTO strapi_admin_users_roles_links (
+          INSERT INTO admin_users_roles_links (
               user_id,
-              role_id,
-              role_order,
-              user_order
+              role_id
           )
           VALUES (
-              (SELECT id FROM strapi_admin_users WHERE email='${ADMIN_EMAIL}'),
-              1,
-              1,
+              (SELECT id FROM admin_users WHERE email='${ADMIN_EMAIL}'),
               1
           )
           ON CONFLICT DO NOTHING;
@@ -234,9 +226,6 @@ jobs:
           SQL
 
           echo "✅ Strapi admin user created/updated successfully: ${ADMIN_EMAIL}"
-
-
-
 
 
 
