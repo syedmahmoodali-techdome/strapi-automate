@@ -482,6 +482,10 @@ jobs:
 
           echo "✅ Admin user created/updated successfully."
 
+      #everything perfectly good before this, just adding this to delete the acr once done creation of strapi
+      - name: Delete temporary ACR
+        run: |
+          az acr delete --name ${{ env.azure_acr_name }} --resource-group ${{ env.company_code }}-${{ env.environment }}-${{ env.project_name }}-rg --yes
 
 
       # i added this to create admin after strapi comes up
