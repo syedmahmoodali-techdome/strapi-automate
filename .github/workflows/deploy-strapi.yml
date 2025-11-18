@@ -134,7 +134,7 @@ jobs:
       #before this everything is fine, admin is getting created manually and not this is to auto create admin
       - name: Parse Strapi admin creds from clinic-config.json
         run: |
-          echo "🔥 Parsing clinic-config.json for admin creds"
+          echo "Parsing clinic-config.json for admin creds"
 
           ADMIN_EMAIL=$(jq -r '.strapi.admin_email' clinic-config.json)
           ADMIN_PW=$(jq -r '.strapi.admin_password' clinic-config.json)
@@ -142,7 +142,7 @@ jobs:
           ADMIN_LAST=$(jq -r '.strapi.admin_lastname // "User"' clinic-config.json)
 
           if [ -z "$ADMIN_EMAIL" ] || [ -z "$ADMIN_PW" ]; then
-            echo "❌ ERROR: Missing admin email/password in clinic-config.json"
+            echo "ERROR: Missing admin email/password in clinic-config.json"
             exit 1
           fi
 
@@ -151,7 +151,7 @@ jobs:
           echo "ADMIN_FIRST=$ADMIN_FIRST" >> $GITHUB_ENV
           echo "ADMIN_LAST=$ADMIN_LAST" >> $GITHUB_ENV
 
-          echo "✅ Loaded admin creds + firstname/lastname"
+          echo "Loaded admin creds + firstname/lastname"
 
       - name: Install bcryptjs locally
         run: npm install bcryptjs
@@ -162,7 +162,7 @@ jobs:
           npm install -g bcryptjs
           HASH=$(node -e "console.log(require('bcryptjs').hashSync(process.env.ADMIN_PW, 10))")
           echo "HASHED_PASSWORD=$HASH" >> $GITHUB_ENV
-          echo "✅ Password hashed using bcryptjs (correct for Strapi v5)"
+          echo "Password hashed using bcryptjs (correct for Strapi v5)"
 
       # - name: Insert Strapi admin user (correct Strapi v5 tables)
       #   env:
@@ -225,7 +225,7 @@ jobs:
 
       #     SQL
 
-      #     echo "✅ Strapi admin user created/updated successfully: ${ADMIN_EMAIL}"
+      #     echo "Strapi admin user created/updated successfully: ${ADMIN_EMAIL}"
 
 
 
@@ -260,7 +260,7 @@ jobs:
           });
           EOF
 
-          echo "✅ server.ts overridden successfully in ecommpoc/my-strapi-project/config"
+          echo "server.ts overridden successfully in ecommpoc/my-strapi-project/config"
 
 
 
@@ -283,17 +283,17 @@ jobs:
           };
           EOF
 
-          echo  "✅ index.ts middleware injected successfully"
+          echo  "index.ts middleware injected successfully"
 
 
 
 
       - name: DEBUG — Show server.ts content after override
         run: |
-          echo "📄 Printing server.ts to verify override..."
+          echo "Printing server.ts to verify override..."
           ls -R ecommpoc/my-strapi-project/config || true
           echo "------- FILE CONTENT BELOW -------"
-          cat ecommpoc/my-strapi-project/config/server.ts || echo "❌ server.ts NOT FOUND"
+          cat ecommpoc/my-strapi-project/config/server.ts || echo "server.ts NOT FOUND"
           echo "----------------------------------"
 
 
@@ -402,12 +402,12 @@ jobs:
             HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://$CMS_HOST/admin" || true)
             echo "Attempt $i: status=$HTTP_CODE"
             if [ "$HTTP_CODE" = "200" ]; then
-              echo "✅ Strapi admin is up at https://$CMS_HOST/admin"
+              echo "Strapi admin is up at https://$CMS_HOST/admin"
               exit 0
             fi
             sleep 15
           done
-          echo "❌ Strapi did not become available within the timeout."
+          echo "Strapi did not become available within the timeout."
           exit 1
 
 
@@ -422,7 +422,7 @@ jobs:
         run: |
           export PGPASSWORD="$DB_PASS"
 
-          echo "⏳ Waiting for Strapi to initialize database tables..."
+          echo "Waiting for Strapi to initialize database tables..."
 
           for i in {1..40}; do
             COUNT=$(psql \
@@ -430,18 +430,18 @@ jobs:
               -tAc "SELECT COUNT(*) FROM admin_users" 2>/dev/null || echo 0)
 
             if [ "$COUNT" -ge 0 ]; then
-              echo "✅ Strapi admin tables exist."
+              echo "Strapi admin tables exist."
               break
             fi
 
-            echo "⌛ Tables not ready yet — retrying ($i/40)..."
+            echo "Tables not ready yet — retrying ($i/40)..."
             sleep 10
           done
 
 
       - name: Generate SQL script safely
         run: |
-          echo "🔥 Generating SQL (echo-safe version)..."
+          echo "Generating SQL (echo-safe version)..."
 
           echo "INSERT INTO admin_users (email, password, firstname, lastname, is_active, blocked, created_at, updated_at)" > create_admin.sql
           echo "SELECT '${ADMIN_EMAIL}', '${HASHED_PASSWORD}', '${ADMIN_FIRST}', '${ADMIN_LAST}', TRUE, FALSE, NOW(), NOW()" >> create_admin.sql
@@ -460,7 +460,7 @@ jobs:
           echo "" >> create_admin.sql
           echo "DELETE FROM core_admin_auth;" >> create_admin.sql
 
-          echo "✅ create_admin.sql generated:"
+          echo "create_admin.sql generated:"
           cat create_admin.sql
 
 
@@ -480,18 +480,18 @@ jobs:
 
           psql "host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER password=$DB_PASS sslmode=require" -f create_admin.sql
 
-          echo "✅ Admin user created/updated successfully."
+          echo "Admin user created/updated successfully."
 
       #everything perfectly good before this, just adding this to delete the acr once done creation of strapi
       - name: Delete temporary ACR
         if: always()
         run: |
-          echo "🔥 Deleting temporary ACR..."
+          echo "Deleting temporary ACR..."
           ACR_NAME="${{ needs.terraform.outputs.acr_name }}"
           RG_NAME="${{ needs.terraform.outputs.resource_group_name }}"
 
           if [ -z "$ACR_NAME" ]; then
-            echo "❌ ERROR: ACR name is empty. Skipping delete."
+            echo "ERROR: ACR name is empty. Skipping delete."
             exit 0
           fi
 
@@ -499,7 +499,7 @@ jobs:
           echo "RG  = $RG_NAME"
 
           az acr delete --name "$ACR_NAME" --resource-group "$RG_NAME" --yes
-          echo "✅ ACR deleted successfully"
+          echo "ACR deleted successfully"
 
 
 
