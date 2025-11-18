@@ -102,6 +102,16 @@ variable "brand_favicon_url" {
   default     = ""
 }
 
+variable "strapi_admin_firstname" {
+  type = string
+  default = "Admin"
+}
+
+variable "strapi_admin_lastname" {
+  type = string
+  default = "User"
+}
+
 variable "github_token" {
   description = "GitHub token (passed to pipeline via -var if needed)"
   type        = string
