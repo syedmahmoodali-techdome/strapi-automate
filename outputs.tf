@@ -37,13 +37,13 @@ output "app_service_name" {
   value = module.app_service.app_service_name
 }
 
-output "acr_name" {
-  value = module.app_service.acr_name
-}
+#output "acr_name" {
+#  value = module.app_service.acr_name
+#}
 
-output "acr_login_server" {
-  value = module.app_service.acr_login_server
-}
+#output "acr_login_server" {
+#  value = module.app_service.acr_login_server
+#}
 
 output "acr_admin_username" {
   description = "ACR admin username (sensitive)"
