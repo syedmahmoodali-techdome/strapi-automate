@@ -3,13 +3,13 @@ provider "azurerm" {
 }
 
 # Container Registry (ACR)
-resource "azurerm_container_registry" "acr" {
-  name                = "${replace(lower(var.clinic_name), "-", "")}acr"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  sku                 = "Basic"
-  admin_enabled       = true
-}
+#resource "azurerm_container_registry" "acr" {
+#  name                = "${replace(lower(var.clinic_name), "-", "")}acr"
+#  resource_group_name = var.resource_group_name
+#  location            = var.location
+#  sku                 = "Basic"
+#  admin_enabled       = true
+#}
 
 # Linux Web App
 resource "azurerm_linux_web_app" "app_service" {
@@ -21,10 +21,10 @@ resource "azurerm_linux_web_app" "app_service" {
   site_config {
     always_on = true
     # NOTE: we do NOT set linux_fx_version or container_registry here so pipeline (az cli) can manage the image
-    application_stack {
-      docker_image_name   = "${var.image_name}:${var.image_tag}"
-      docker_registry_url = "https://${azurerm_container_registry.acr.login_server}"
-    }
+    #application_stack {
+    #  docker_image_name   = "${var.image_name}:${var.image_tag}"
+    #  docker_registry_url = "https://${azurerm_container_registry.acr.login_server}"
+    #}
   }
 
   app_settings = {
@@ -76,13 +76,13 @@ output "cms_url" {
   value = azurerm_linux_web_app.app_service.default_hostname
 }
 
-output "acr_name" {
-  value = azurerm_container_registry.acr.name
-}
+#output "acr_name" {
+#  value = azurerm_container_registry.acr.name
+#}
 
-output "acr_login_server" {
-  value = azurerm_container_registry.acr.login_server
-}
+#output "acr_login_server" {
+#  value = azurerm_container_registry.acr.login_server
+#}
 
 # Provide ACR admin credentials for pipeline convenience
 output "acr_admin_username" {
