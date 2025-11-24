@@ -13,7 +13,7 @@ resource "azurerm_container_registry" "acr" {
 
 # Linux Web App
 resource "azurerm_linux_web_app" "app_service" {
-  name                = "${lower(var.clinic_name)}-app"
+  name                = "${lower(var.clinic_name)}-app-strapi"
   resource_group_name = var.resource_group_name
   location            = var.location
   service_plan_id     = var.service_plan_id
